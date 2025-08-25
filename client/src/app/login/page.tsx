@@ -12,7 +12,6 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login, isLoading: authLoading } = useAuth();
-  const router = useRouter();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,9 +24,12 @@ const LoginPage: React.FC = () => {
     try {
       setIsLoading(true);
       await login(email, password);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error && 'response' in error 
+        ? (error as { response: { data: { message: string } } }).response?.data?.message || 'Login failed'
+        : 'Login failed';
       console.error('Login error:', error);
-      toast.error(error.response?.data?.message || 'Login failed');
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

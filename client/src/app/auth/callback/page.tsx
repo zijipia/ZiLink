@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import apiService from '@/lib/api';
 import websocketService from '@/lib/websocket';
@@ -9,17 +9,10 @@ import { toast } from 'react-hot-toast';
 const OAuthCallbackPage: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    handleOAuthCallback();
-  }, []);
-
-  const handleOAuthCallback = async () => {
+  const handleOAuthCallback = useCallback(async () => {
     try {
-      setIsProcessing(true);
-
       // Extract tokens from URL parameters
       const accessToken = searchParams.get('accessToken');
       const refreshToken = searchParams.get('refreshToken');
@@ -52,10 +45,11 @@ const OAuthCallbackPage: React.FC = () => {
       // Redirect to dashboard
       router.push('/dashboard');
 
-    } catch (error: any) {
-      console.error('OAuth callback error:', error);
-      setError(error.message || 'Authentication failed');
-      toast.error(error.message || 'Authentication failed');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
+      console.error('OAuth callback error:', err);
+      setError(errorMessage);
+      toast.error(errorMessage);
       
       // Clear any partial tokens
       localStorage.removeItem('accessToken');
@@ -65,10 +59,12 @@ const OAuthCallbackPage: React.FC = () => {
       setTimeout(() => {
         router.push('/login?error=oauth_failed');
       }, 3000);
-    } finally {
-      setIsProcessing(false);
     }
-  };
+  }, [searchParams, router]);
+
+  useEffect(() => {
+    handleOAuthCallback();
+  }, [handleOAuthCallback]);
 
   if (error) {
     return (
