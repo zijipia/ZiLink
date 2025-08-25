@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -14,15 +13,19 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
+/** @type {import('next').Metadata} */
+export const metadata = {
   title: "ZiLink IoT Platform",
   description: "Comprehensive IoT device management platform",
 };
 
+/**
+ * Root layout component
+ * @param {Object} props
+ * @param {React.ReactNode} props.children
+ */
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode;
 }) {
   return (
     <html lang="en">

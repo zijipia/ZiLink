@@ -1,58 +1,77 @@
 import { toast } from 'react-hot-toast';
 
-export interface WebSocketMessage {
-  type: string;
-  data: any;
-}
+/**
+ * @typedef {Object} WebSocketMessage
+ * @property {string} type
+ * @property {any} data
+ */
 
-export interface DeviceDataMessage {
-  deviceId: string;
-  sensorData: any[];
-  timestamp: string;
-}
+/**
+ * @typedef {Object} DeviceDataMessage
+ * @property {string} deviceId
+ * @property {any[]} sensorData
+ * @property {string} timestamp
+ */
 
-export interface DeviceStatusMessage {
-  deviceId: string;
-  status: any;
-  timestamp: string;
-}
+/**
+ * @typedef {Object} DeviceStatusMessage
+ * @property {string} deviceId
+ * @property {any} status
+ * @property {string} timestamp
+ */
 
-export interface DeviceAlertMessage {
-  deviceId: string;
-  alert: {
-    type: string;
-    severity: 'info' | 'warning' | 'error' | 'critical';
-    message: string;
-  };
-  timestamp: string;
-}
+/**
+ * @typedef {Object} DeviceAlertMessage
+ * @property {string} deviceId
+ * @property {Object} alert
+ * @property {string} alert.type
+ * @property {'info' | 'warning' | 'error' | 'critical'} alert.severity
+ * @property {string} alert.message
+ * @property {string} timestamp
+ */
 
-type EventHandler = (data: any) => void;
+/**
+ * @typedef {function(any): void} EventHandler
+ */
 
 class WebSocketService {
-  private ws: WebSocket | null = null;
-  private wsUrl: string;
-  private accessToken: string | null = null;
-  private isConnected: boolean = false;
-  private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 5;
-  private reconnectInterval: number = 3000;
-  private reconnectTimer: NodeJS.Timeout | null = null;
-  private pingInterval: NodeJS.Timeout | null = null;
-  private eventHandlers: Map<string, Set<EventHandler>> = new Map();
-
   constructor() {
+    /** @type {WebSocket | null} */
+    this.ws = null;
+    /** @type {string} */
     this.wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
+    /** @type {string | null} */
+    this.accessToken = null;
+    /** @type {boolean} */
+    this.isConnected = false;
+    /** @type {number} */
+    this.reconnectAttempts = 0;
+    /** @type {number} */
+    this.maxReconnectAttempts = 5;
+    /** @type {number} */
+    this.reconnectInterval = 3000;
+    /** @type {NodeJS.Timeout | null} */
+    this.reconnectTimer = null;
+    /** @type {NodeJS.Timeout | null} */
+    this.pingInterval = null;
+    /** @type {Map<string, Set<EventHandler>>} */
+    this.eventHandlers = new Map();
+
     this.loadAccessToken();
   }
 
-  private loadAccessToken() {
+  loadAccessToken() {
     if (typeof window !== 'undefined') {
       this.accessToken = localStorage.getItem('accessToken');
     }
   }
 
-  connect(token?: string): Promise<void> {
+  /**
+   * Connect to WebSocket server
+   * @param {string} [token] - Access token
+   * @returns {Promise<void>}
+   */
+  connect(token) {
     return new Promise((resolve, reject) => {
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
         resolve();
@@ -93,7 +112,8 @@ class WebSocketService {
 
         this.ws.onmessage = (event) => {
           try {
-            const message: WebSocketMessage = JSON.parse(event.data);
+            /** @type {WebSocketMessage} */
+            const message = JSON.parse(event.data);
             this.handleMessage(message);
           } catch (error) {
             console.error('❌ WebSocket message parse error:', error);
@@ -124,7 +144,11 @@ class WebSocketService {
     });
   }
 
-  private handleMessage(message: WebSocketMessage) {
+  /**
+   * Handle incoming WebSocket message
+   * @param {WebSocketMessage} message 
+   */
+  handleMessage(message) {
     const { type, data } = message;
     
     console.log('📨 WebSocket message received:', type, data);
@@ -140,15 +164,15 @@ class WebSocketService {
         break;
         
       case 'device_data':
-        this.emit('device_data', data as DeviceDataMessage);
+        this.emit('device_data', /** @type {DeviceDataMessage} */ (data));
         break;
         
       case 'device_status_update':
-        this.emit('device_status', data as DeviceStatusMessage);
+        this.emit('device_status', /** @type {DeviceStatusMessage} */ (data));
         break;
         
       case 'device_alert':
-        this.emit('device_alert', data as DeviceAlertMessage);
+        this.emit('device_alert', /** @type {DeviceAlertMessage} */ (data));
         if (data.alert.severity === 'error' || data.alert.severity === 'critical') {
           toast.error(`Device Alert: ${data.alert.message}`);
         } else if (data.alert.severity === 'warning') {
@@ -191,7 +215,7 @@ class WebSocketService {
     this.emit('message', message);
   }
 
-  private scheduleReconnect() {
+  scheduleReconnect() {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
     }
@@ -209,7 +233,7 @@ class WebSocketService {
     }, delay);
   }
 
-  private startPingInterval() {
+  startPingInterval() {
     this.pingInterval = setInterval(() => {
       if (this.isConnected) {
         this.send({ type: 'ping', data: {} });
@@ -217,14 +241,19 @@ class WebSocketService {
     }, 30000); // Send ping every 30 seconds
   }
 
-  private stopPingInterval() {
+  stopPingInterval() {
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
       this.pingInterval = null;
     }
   }
 
-  send(message: WebSocketMessage): boolean {
+  /**
+   * Send message via WebSocket
+   * @param {WebSocketMessage} message 
+   * @returns {boolean}
+   */
+  send(message) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       console.warn('⚠️  WebSocket not connected, cannot send message');
       return false;
@@ -240,14 +269,25 @@ class WebSocketService {
   }
 
   // Device-specific methods
-  subscribeToDevice(deviceId: string): boolean {
+  /**
+   * Subscribe to device updates
+   * @param {string} deviceId 
+   * @returns {boolean}
+   */
+  subscribeToDevice(deviceId) {
     return this.send({
       type: 'subscribe_device',
       data: { deviceId }
     });
   }
 
-  sendDeviceCommand(deviceId: string, command: any): boolean {
+  /**
+   * Send command to device
+   * @param {string} deviceId 
+   * @param {any} command 
+   * @returns {boolean}
+   */
+  sendDeviceCommand(deviceId, command) {
     return this.send({
       type: 'device_command',
       data: { deviceId, command }
@@ -255,14 +295,24 @@ class WebSocketService {
   }
 
   // Event handling
-  on(event: string, handler: EventHandler): void {
+  /**
+   * Add event listener
+   * @param {string} event 
+   * @param {EventHandler} handler 
+   */
+  on(event, handler) {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set());
     }
-    this.eventHandlers.get(event)!.add(handler);
+    this.eventHandlers.get(event).add(handler);
   }
 
-  off(event: string, handler: EventHandler): void {
+  /**
+   * Remove event listener
+   * @param {string} event 
+   * @param {EventHandler} handler 
+   */
+  off(event, handler) {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       handlers.delete(handler);
@@ -272,7 +322,12 @@ class WebSocketService {
     }
   }
 
-  private emit(event: string, data: any): void {
+  /**
+   * Emit event to all listeners
+   * @param {string} event 
+   * @param {any} data 
+   */
+  emit(event, data) {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       handlers.forEach(handler => {
@@ -285,7 +340,10 @@ class WebSocketService {
     }
   }
 
-  disconnect(): void {
+  /**
+   * Disconnect from WebSocket
+   */
+  disconnect() {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -303,11 +361,11 @@ class WebSocketService {
     console.log('🔌 WebSocket disconnected');
   }
 
-  getConnectionStatus(): {
-    isConnected: boolean;
-    reconnectAttempts: number;
-    readyState?: number;
-  } {
+  /**
+   * Get connection status
+   * @returns {Object}
+   */
+  getConnectionStatus() {
     return {
       isConnected: this.isConnected,
       reconnectAttempts: this.reconnectAttempts,
@@ -315,8 +373,10 @@ class WebSocketService {
     };
   }
 
-  // Cleanup method for React component unmounting
-  cleanup(): void {
+  /**
+   * Cleanup method for React component unmounting
+   */
+  cleanup() {
     this.eventHandlers.clear();
     this.disconnect();
   }

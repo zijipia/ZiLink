@@ -7,13 +7,21 @@ import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import apiService from '@/lib/api';
 
-const LoginPage: React.FC = () => {
+/**
+ * Login page component
+ * @returns {React.JSX.Element}
+ */
+const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login, isLoading: authLoading } = useAuth();
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  /**
+   * Handle email login form submission
+   * @param {React.FormEvent} e
+   */
+  const handleEmailLogin = async (e) => {
     e.preventDefault();
     
     if (!email || !password) {
@@ -24,10 +32,8 @@ const LoginPage: React.FC = () => {
     try {
       setIsLoading(true);
       await login(email, password);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error && 'response' in error 
-        ? (error as { response: { data: { message: string } } }).response?.data?.message || 'Login failed'
-        : 'Login failed';
+    } catch (error) {
+      const errorMessage = error?.response?.data?.message || 'Login failed';
       console.error('Login error:', error);
       toast.error(errorMessage);
     } finally {
@@ -35,7 +41,11 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleOAuthLogin = (provider: 'google' | 'github' | 'discord') => {
+  /**
+   * Handle OAuth login
+   * @param {'google' | 'github' | 'discord'} provider
+   */
+  const handleOAuthLogin = (provider) => {
     const oauthUrl = apiService.getOAuthUrl(provider);
     window.location.href = oauthUrl;
   };

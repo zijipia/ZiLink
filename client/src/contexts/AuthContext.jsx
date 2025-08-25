@@ -1,23 +1,29 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import apiService, { User, AuthTokens } from '@/lib/api';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import apiService from '@/lib/api';
 import websocketService from '@/lib/websocket';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 
-interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => Promise<void>;
-  updateUser: (updates: Partial<User>) => Promise<void>;
-}
+/**
+ * @typedef {Object} AuthContextType
+ * @property {import('@/lib/api').User | null} user
+ * @property {boolean} isLoading
+ * @property {boolean} isAuthenticated
+ * @property {function(string, string): Promise<void>} login
+ * @property {function(string, string, string): Promise<void>} register
+ * @property {function(): Promise<void>} logout
+ * @property {function(Partial<import('@/lib/api').User>): Promise<void>} updateUser
+ */
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+/** @type {React.Context<AuthContextType | undefined>} */
+const AuthContext = createContext(undefined);
 
+/**
+ * Hook to use auth context
+ * @returns {AuthContextType}
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -26,12 +32,20 @@ export const useAuth = () => {
   return context;
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+/**
+ * @typedef {Object} AuthProviderProps
+ * @property {React.ReactNode} children
+ */
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+/**
+ * Auth Provider component
+ * @param {AuthProviderProps} props
+ * @returns {React.JSX.Element}
+ */
+export const AuthProvider = ({ children }) => {
+  /** @type {[import('@/lib/api').User | null, function]} */
+  const [user, setUser] = useState(null);
+  /** @type {[boolean, function]} */
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -64,7 +78,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  /**
+   * Login user
+   * @param {string} email 
+   * @param {string} password 
+   */
+  const login = async (email, password) => {
     try {
       setIsLoading(true);
       const { user: loggedInUser, tokens } = await apiService.login(email, password);
@@ -74,7 +93,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await websocketService.connect(tokens.accessToken);
       
       router.push('/dashboard');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login failed:', error);
       throw error;
     } finally {
@@ -82,7 +101,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (email: string, password: string, name: string) => {
+  /**
+   * Register new user
+   * @param {string} email 
+   * @param {string} password 
+   * @param {string} name 
+   */
+  const register = async (email, password, name) => {
     try {
       setIsLoading(true);
       const { user: newUser, tokens } = await apiService.register(email, password, name);
@@ -92,7 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await websocketService.connect(tokens.accessToken);
       
       router.push('/dashboard');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Registration failed:', error);
       throw error;
     } finally {
@@ -100,6 +125,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  /**
+   * Logout user
+   */
   const logout = async () => {
     try {
       setIsLoading(true);
@@ -114,7 +142,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const updateUser = async (updates: Partial<User>) => {
+  /**
+   * Update user profile
+   * @param {Partial<import('@/lib/api').User>} updates 
+   */
+  const updateUser = async (updates) => {
     try {
       if (!user) return;
       
@@ -126,7 +158,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const value: AuthContextType = {
+  /** @type {AuthContextType} */
+  const value = {
     user,
     isLoading,
     isAuthenticated: !!user,

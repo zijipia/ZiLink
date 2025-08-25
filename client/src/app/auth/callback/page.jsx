@@ -1,29 +1,29 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import apiService from '@/lib/api';
-import websocketService from '@/lib/websocket';
-import { toast } from 'react-hot-toast';
+import React, { useEffect, useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import apiService from "@/lib/api";
+import websocketService from "@/lib/websocket";
+import { toast } from "react-hot-toast";
 
-const OAuthCallbackPage: React.FC = () => {
+const OAuthCallbackPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
   const handleOAuthCallback = useCallback(async () => {
     try {
       // Extract tokens from URL parameters
-      const accessToken = searchParams.get('accessToken');
-      const refreshToken = searchParams.get('refreshToken');
-      const errorParam = searchParams.get('error');
+      const accessToken = searchParams.get("accessToken");
+      const refreshToken = searchParams.get("refreshToken");
+      const errorParam = searchParams.get("error");
 
       if (errorParam) {
         throw new Error(decodeURIComponent(errorParam));
       }
 
       if (!accessToken || !refreshToken) {
-        throw new Error('Missing authentication tokens');
+        throw new Error("Missing authentication tokens");
       }
 
       // Store tokens using API service
@@ -36,28 +36,28 @@ const OAuthCallbackPage: React.FC = () => {
       try {
         await websocketService.connect(accessToken);
       } catch (wsError) {
-        console.warn('WebSocket connection failed:', wsError);
+        console.warn("WebSocket connection failed:", wsError);
         // Don't block login for WebSocket failure
       }
 
       toast.success(`Welcome back, ${user.name}!`);
-      
-      // Redirect to dashboard
-      router.push('/dashboard');
 
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
-      console.error('OAuth callback error:', err);
+      // Redirect to dashboard
+      router.push("/dashboard");
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Authentication failed";
+      console.error("OAuth callback error:", err);
       setError(errorMessage);
       toast.error(errorMessage);
-      
+
       // Clear any partial tokens
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+
       // Redirect to login after a delay
       setTimeout(() => {
-        router.push('/login?error=oauth_failed');
+        router.push("/login?error=oauth_failed");
       }, 3000);
     }
   }, [searchParams, router]);
@@ -85,7 +85,9 @@ const OAuthCallbackPage: React.FC = () => {
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Authentication Failed</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Authentication Failed
+          </h1>
           <p className="text-gray-600 mb-6">{error}</p>
           <div className="text-sm text-gray-500">
             Redirecting to login page in 3 seconds...
@@ -113,7 +115,9 @@ const OAuthCallbackPage: React.FC = () => {
             />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Completing Sign In</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Completing Sign In
+        </h1>
         <p className="text-gray-600 mb-6">
           We're setting up your account. Please wait...
         </p>

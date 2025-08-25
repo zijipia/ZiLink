@@ -7,27 +7,32 @@ import apiService from '@/lib/api';
 import websocketService from '@/lib/websocket';
 import { toast } from 'react-hot-toast';
 
-interface DashboardData {
-  summary: {
-    totalDevices: number;
-    onlineDevices: number;
-    offlineDevices: number;
-    uptimePercentage: number;
-  };
-  deviceTypes: Array<{ _id: string; count: number }>;
-  recentDevices: any[];
-  user: {
-    name: string;
-    email: string;
-    memberSince: string;
-  };
-}
+/**
+ * @typedef {Object} DashboardData
+ * @property {Object} summary
+ * @property {number} summary.totalDevices
+ * @property {number} summary.onlineDevices
+ * @property {number} summary.offlineDevices
+ * @property {number} summary.uptimePercentage
+ * @property {Array<{_id: string, count: number}>} deviceTypes
+ * @property {any[]} recentDevices
+ * @property {Object} user
+ * @property {string} user.name
+ * @property {string} user.email
+ * @property {string} user.memberSince
+ */
 
-const DashboardPage: React.FC = () => {
+/**
+ * Dashboard page component
+ * @returns {React.JSX.Element}
+ */
+const DashboardPage = () => {
   const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  /** @type {[DashboardData | null, function]} */
+  const [dashboardData, setDashboardData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [wsStatus, setWsStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
+  /** @type {['connected' | 'connecting' | 'disconnected', function]} */
+  const [wsStatus, setWsStatus] = useState('connecting');
   const router = useRouter();
 
   useEffect(() => {
@@ -66,16 +71,28 @@ const DashboardPage: React.FC = () => {
     const statusInterval = setInterval(checkStatus, 5000);
 
     // Listen to device events
-    const handleDeviceData = (data: any) => {
+    /**
+     * Handle device data event
+     * @param {any} data
+     */
+    const handleDeviceData = (data) => {
       console.log('Received device data:', data);
       toast.success(`New data from ${data.deviceId}`, { duration: 2000 });
     };
 
-    const handleDeviceStatus = (data: any) => {
+    /**
+     * Handle device status event
+     * @param {any} data
+     */
+    const handleDeviceStatus = (data) => {
       console.log('Device status update:', data);
     };
 
-    const handleDeviceAlert = (data: any) => {
+    /**
+     * Handle device alert event
+     * @param {any} data
+     */
+    const handleDeviceAlert = (data) => {
       console.log('Device alert:', data);
       if (data.alert.severity === 'critical' || data.alert.severity === 'error') {
         toast.error(`Device Alert: ${data.alert.message}`, { duration: 6000 });
