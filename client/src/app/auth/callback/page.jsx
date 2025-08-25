@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import apiService from "@/lib/api";
 import websocketService from "@/lib/websocket";
 import { toast } from "react-hot-toast";
 
-const OAuthCallbackPage = () => {
+function OAuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState(null);
@@ -127,6 +127,12 @@ const OAuthCallbackPage = () => {
       </div>
     </div>
   );
-};
+}
 
-export default OAuthCallbackPage;
+export default function OAuthCallbackPage() {
+  return (
+    <Suspense>
+      <OAuthCallbackContent />
+    </Suspense>
+  );
+}
