@@ -1,0 +1,79 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0" version="28.0.7">
+  <diagram name="Page-1" id="kcbcqz0t08lp8tHlhbcN">
+    <mxGraphModel dx="1179" dy="729" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-1" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-2" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="350" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-6" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-7" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="370" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-8" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-9" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="90" y="390" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-10" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="400" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-11" value="IOT&lt;div&gt;device&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="410" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-13" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="410" as="sourcePoint" />
+            <mxPoint x="370" y="410" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-14" value="Node sever" style="whiteSpace=wrap;html=1;aspect=fixed;" vertex="1" parent="1">
+          <mxGeometry x="390" y="370" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-15" value="API, WS, MQTT" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="250" y="405" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-16" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="340" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-17" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="610" y="350" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-18" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="360" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-19" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="370" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-20" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="380" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-21" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="390" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-22" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="400" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-23" value="Web" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="410" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-24" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="480" y="410" as="sourcePoint" />
+            <mxPoint x="600" y="410" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_2-X6XRzMaKaLygjBcaH-25" value="API, WS, MQTT" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="480" y="405" width="110" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

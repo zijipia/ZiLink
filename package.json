@@ -1,0 +1,23 @@
+{
+  "name": "zilink-platform",
+  "version": "1.0.0",
+  "description": "IoT Device Management Platform with Node.js, WebSocket, and Next.js",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "cd server && npm run build",
+    "build:client": "cd client && npm run build",
+    "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "start:server": "cd server && npm start",
+    "start:client": "cd client && npm start"
+  },
+  "keywords": ["iot", "nodejs", "websocket", "nextjs", "mqtt", "oauth"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
