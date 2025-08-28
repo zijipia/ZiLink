@@ -23,6 +23,7 @@ import { toast } from "react-hot-toast";
  * @typedef {Object} Device
  * @property {string} _id
  * @property {string} deviceId
+ * @property {string} [deviceToken]
  * @property {string} name
  * @property {string} description
  * @property {string} type
@@ -285,7 +286,7 @@ class ApiService {
 	/**
 	 * Get single device
 	 * @param {string} deviceId
-	 * @returns {Promise<Device>}
+	 * @returns {Promise<{device: Device, deviceToken: string}>}
 	 */
 	async getDevice(deviceId) {
 		const response = await this.api.get(`/api/devices/${deviceId}`);
@@ -293,14 +294,24 @@ class ApiService {
 	}
 
 	/**
-	 * Register new device
+	 * Register new device (ID auto-generated on server)
 	 * @param {Partial<Device>} deviceData
-	 * @returns {Promise<Device>}
+	 * @returns {Promise<{device: Device, apiKey: string, deviceToken: string}>}
 	 */
 	async registerDevice(deviceData) {
 		const response = await this.api.post("/api/devices/register", deviceData);
 		toast.success("Device registered successfully!");
 		return response.data.data;
+	}
+
+	/**
+	 * Send command to device
+	 * @param {string} deviceId
+	 * @param {string} command
+	 */
+	async sendCommand(deviceId, command) {
+		await this.api.post(`/api/devices/${deviceId}/command`, { command });
+		toast.success("Command sent");
 	}
 
 	/**

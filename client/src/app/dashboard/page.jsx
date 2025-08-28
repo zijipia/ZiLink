@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import apiService from "@/lib/api";
 import websocketService from "@/lib/websocket";
 import { toast } from "react-hot-toast";
@@ -299,15 +300,41 @@ const DashboardPage = () => {
 					<div className='bg-white p-6 rounded-lg shadow'>
 						<h3 className='text-lg font-semibold text-gray-900 mb-4'>Quick Actions</h3>
 						<div className='space-y-3'>
-							<button className='w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
+							<Link
+								href='/devices/new'
+								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
 								+ Add New Device
-							</button>
-							<button className='w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
+							</Link>
+							<Link
+								href='/devices'
+								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
+								📋 Manage Devices
+							</Link>
+							<Link
+								href='/analytics'
+								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
 								📊 View Analytics
-							</button>
-							<button className='w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
+							</Link>
+							<Link
+								href='/settings'
+								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
 								⚙️ Settings
-							</button>
+							</Link>
+							<Link
+								href='/designer'
+								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
+								🛠️ UI Designer
+							</Link>
+							<Link
+								href='/viewer'
+								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
+								👁️ Viewer
+							</Link>
+							<Link
+								href='/console'
+								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
+								📝 Raw Console
+							</Link>
 						</div>
 					</div>
 
