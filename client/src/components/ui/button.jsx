@@ -3,8 +3,9 @@ import { cn } from "@/lib/utils";
 
 const buttonVariants = {
 	default: "bg-blue-600 text-white hover:bg-blue-700",
-	outline: "border border-gray-300 text-gray-700 hover:bg-gray-100",
-	ghost: "text-gray-700 hover:bg-gray-100",
+	outline:
+		"border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800",
+	ghost: "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800",
 };
 
 const buttonSizes = {

@@ -8,14 +8,16 @@ import { toast } from "react-hot-toast";
 import apiService from "@/lib/api";
 
 /**
- * Login page component
+ * Sign up page component
  * @returns {React.JSX.Element}
  */
-const LoginPage = () => {
+const SignUpPage = () => {
+	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
+	const [confirmPassword, setConfirmPassword] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
-	const { login, isLoading: authLoading, isAuthenticated } = useAuth();
+	const { register, isLoading: authLoading, isAuthenticated } = useAuth();
 	const router = useRouter();
 
 	useEffect(() => {
@@ -23,25 +25,30 @@ const LoginPage = () => {
 			router.replace("/dashboard");
 		}
 	}, [authLoading, isAuthenticated, router]);
+
 	/**
-	 * Handle email login form submission
+	 * Handle email registration form submission
 	 * @param {React.FormEvent} e
 	 */
-	const handleEmailLogin = async (e) => {
+	const handleEmailRegister = async (e) => {
 		e.preventDefault();
 
-		if (!email || !password) {
+		if (!name || !email || !password || !confirmPassword) {
 			toast.error("Please fill in all fields");
+			return;
+		}
+		if (password !== confirmPassword) {
+			toast.error("Passwords do not match");
 			return;
 		}
 
 		try {
 			setIsLoading(true);
-			await login(email, password);
+			await register(email, password, name);
 			router.replace("/dashboard");
 		} catch (error) {
-			const errorMessage = error?.response?.data?.message || "Login failed";
-			console.error("Login error:", error);
+			const errorMessage = error?.response?.data?.message || "Registration failed";
+			console.error("Registration error:", error);
 			toast.error(errorMessage);
 		} finally {
 			setIsLoading(false);
@@ -50,7 +57,7 @@ const LoginPage = () => {
 
 	/**
 	 * Handle OAuth login
-	 * @param {'google' | 'github' | 'discord'} provider
+	 * @param {"google" | "github" | "discord"} provider
 	 */
 	const handleOAuthLogin = (provider) => {
 		const oauthUrl = apiService.getOAuthUrl(provider);
@@ -86,12 +93,12 @@ const LoginPage = () => {
 							</svg>
 						</div>
 					</div>
-					<h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-gray-100'>Sign in to ZiLink</h2>
-					<p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400'>Manage your IoT devices with ease</p>
+					<h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-gray-100'>Create your account</h2>
+					<p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400'>Start your journey with ZiLink</p>
 				</div>
 
 				<div className='bg-white dark:bg-gray-800 py-8 px-6 shadow-xl rounded-lg sm:px-10'>
-					{/* OAuth Login Buttons */}
+					{/* OAuth Sign Up Buttons */}
 					<div className='space-y-3'>
 						<button
 							onClick={() => handleOAuthLogin("google")}
@@ -150,19 +157,39 @@ const LoginPage = () => {
 								<div className='w-full border-t border-gray-300' />
 							</div>
 							<div className='relative flex justify-center text-sm'>
-								<span className='px-2 bg-white text-gray-500'>Or continue with email</span>
+								<span className='px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400'>Or continue with email</span>
 							</div>
 						</div>
 					</div>
 
-					{/* Email Login Form */}
+					{/* Email Registration Form */}
 					<form
 						className='mt-6 space-y-6'
-						onSubmit={handleEmailLogin}>
+						onSubmit={handleEmailRegister}>
+						<div>
+							<label
+								htmlFor='name'
+								className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+								Name
+							</label>
+							<div className='mt-1'>
+								<input
+									id='name'
+									name='name'
+									type='text'
+									required
+									value={name}
+									onChange={(e) => setName(e.target.value)}
+									className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-300 dark:text-gray-100'
+									placeholder='Enter your name'
+								/>
+							</div>
+						</div>
+
 						<div>
 							<label
 								htmlFor='email'
-								className='block text-sm font-medium text-gray-700'>
+								className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
 								Email address
 							</label>
 							<div className='mt-1'>
@@ -183,7 +210,7 @@ const LoginPage = () => {
 						<div>
 							<label
 								htmlFor='password'
-								className='block text-sm font-medium text-gray-700'>
+								className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
 								Password
 							</label>
 							<div className='mt-1'>
@@ -191,12 +218,32 @@ const LoginPage = () => {
 									id='password'
 									name='password'
 									type='password'
-									autoComplete='current-password'
+									autoComplete='new-password'
 									required
 									value={password}
 									onChange={(e) => setPassword(e.target.value)}
 									className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-300 dark:text-gray-100'
 									placeholder='Enter your password'
+								/>
+							</div>
+						</div>
+
+						<div>
+							<label
+								htmlFor='confirmPassword'
+								className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+								Confirm Password
+							</label>
+							<div className='mt-1'>
+								<input
+									id='confirmPassword'
+									name='confirmPassword'
+									type='password'
+									required
+									value={confirmPassword}
+									onChange={(e) => setConfirmPassword(e.target.value)}
+									className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-300 dark:text-gray-100'
+									placeholder='Confirm your password'
 								/>
 							</div>
 						</div>
@@ -208,7 +255,7 @@ const LoginPage = () => {
 								className='group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200'>
 								{isLoading ?
 									<div className='w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
-								:	"Sign in"}
+								:	"Create account"}
 							</button>
 						</div>
 					</form>
@@ -216,11 +263,11 @@ const LoginPage = () => {
 					<div className='mt-6'>
 						<div className='text-center'>
 							<span className='text-sm text-gray-600 dark:text-gray-400'>
-								Don't have an account?{" "}
+								Already have an account?{" "}
 								<Link
-									href='/auth/sign-up'
+									href='/auth/login'
 									className='font-medium text-blue-600 hover:text-blue-500 transition duration-200'>
-									Sign up
+									Sign in
 								</Link>
 							</span>
 						</div>
@@ -229,7 +276,7 @@ const LoginPage = () => {
 
 				<div className='text-center'>
 					<p className='text-xs text-gray-500 dark:text-gray-400'>
-						By signing in, you agree to our{" "}
+						By signing up, you agree to our{" "}
 						<Link
 							href='/terms'
 							className='text-blue-600 hover:text-blue-500'>
@@ -248,4 +295,4 @@ const LoginPage = () => {
 	);
 };
 
-export default LoginPage;
+export default SignUpPage;
