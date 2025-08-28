@@ -8,7 +8,6 @@ import fs from "node:fs";
 import { spawn } from "node:child_process";
 import { bin, install } from "cloudflared";
 import mongoose from "mongoose";
-
 import connectDB from "./config/database.js";
 import authRoutes from "./routes/auth.js";
 import deviceRoutes from "./routes/device.js";
@@ -126,6 +125,7 @@ const shutdown = async () => {
 		console.log(`👋 ${signal} received, shutting down gracefully`);
 		shutdown();
 	});
+
 });
 
 export default app;
