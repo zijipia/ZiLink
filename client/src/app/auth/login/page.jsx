@@ -38,6 +38,7 @@ const LoginPage = () => {
 		try {
 			setIsLoading(true);
 			await login(email, password);
+			router.replace("/dashboard");
 		} catch (error) {
 			const errorMessage = error?.response?.data?.message || "Login failed";
 			console.error("Login error:", error);
