@@ -41,6 +41,7 @@ export default function DevicesPage() {
 						<th className='py-2 px-4 border-b text-left'>Name</th>
 						<th className='py-2 px-4 border-b text-left'>Type</th>
 						<th className='py-2 px-4 border-b text-left'>Device ID</th>
+						<th className='py-2 px-4 border-b text-left'>Device Token</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -56,6 +57,17 @@ export default function DevicesPage() {
 									onClick={() => {
 										navigator.clipboard.writeText(d.deviceId);
 										toast.success("Copied device ID");
+									}}
+									className='ml-2 text-blue-600 hover:underline'>
+									Copy
+								</button>
+							</td>
+							<td className='py-2 px-4 border-b font-mono text-sm'>
+								{d.deviceToken}
+								<button
+									onClick={() => {
+										navigator.clipboard.writeText(d.deviceToken);
+										toast.success("Copied device token");
 									}}
 									className='ml-2 text-blue-600 hover:underline'>
 									Copy

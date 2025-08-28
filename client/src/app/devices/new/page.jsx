@@ -22,7 +22,7 @@ export default function NewDevicePage() {
 		e.preventDefault();
 		try {
 			const result = await apiService.registerDevice({ name, type });
-			alert(`Registered device ID: ${result.device.deviceId}`);
+			alert(`Registered device ID: ${result.device.deviceId}\nDevice Token: ${result.deviceToken}`);
 			router.push("/dashboard");
 		} catch (err) {
 			// Errors are handled by apiService toast notifications

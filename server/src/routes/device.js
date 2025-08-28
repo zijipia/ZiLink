@@ -186,10 +186,15 @@ router.get("/", async (req, res) => {
 			...options,
 		});
 
+		const devicesWithTokens = devices.map((d) => ({
+			...d.toObject(),
+			deviceToken: generateDeviceToken(d.deviceId, req.user._id),
+		}));
+
 		res.json({
 			success: true,
 			data: {
-				devices,
+				devices: devicesWithTokens,
 				pagination: {
 					total,
 					page: parseInt(page),
@@ -222,9 +227,14 @@ router.get("/:deviceId", async (req, res) => {
 			});
 		}
 
+		const deviceToken = generateDeviceToken(device.deviceId, req.user._id);
+
 		res.json({
 			success: true,
-			data: device,
+			data: {
+				device,
+				deviceToken,
+			},
 		});
 	} catch (error) {
 		console.error("Get device error:", error);

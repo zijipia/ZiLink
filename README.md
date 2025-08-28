@@ -36,7 +36,7 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **Hỗ trợ giao diện sáng/tối**
 - **Raw console page để theo dõi sự kiện và debug**
 - **Quick action links cho thêm thiết bị mới, xem analytics và cài đặt**
-- **Trang quản lý thiết bị hiển thị Device ID**
+- **Trang quản lý thiết bị hiển thị Device ID và Device Token**
 
 ### IoT Device Support
 
@@ -262,6 +262,8 @@ GET /api/auth/discord
 GET /api/devices
 Authorization: Bearer <token>
 ```
+
+Mỗi thiết bị trong kết quả sẽ bao gồm trường `deviceToken` để sử dụng khi thiết bị kết nối tới nền tảng.
 
 #### Register Device
 
