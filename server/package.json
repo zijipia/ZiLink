@@ -3,6 +3,7 @@
 	"version": "1.0.0",
 	"description": "ZiLink IoT Platform Backend Server",
 	"main": "src/index.js",
+	"type": "module",
 	"scripts": {
 		"dev": "nodemon src/index.js",
 		"start": "node src/index.js",
@@ -27,7 +28,8 @@
 		"mqtt": "^5.0.5",
 		"uuid": "^9.0.0",
 		"joi": "^17.9.2",
-		"express-rate-limit": "^6.10.0"
+		"express-rate-limit": "^6.10.0",
+		"cloudflared": "^0.5.1"
 	},
 	"devDependencies": {
 		"nodemon": "^3.0.1"

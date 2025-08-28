@@ -1,11 +1,10 @@
-const passport = require("passport");
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const GitHubStrategy = require("passport-github2").Strategy;
-const DiscordStrategy = require("passport-discord").Strategy;
-const JwtStrategy = require("passport-jwt").Strategy;
-const ExtractJwt = require("passport-jwt").ExtractJwt;
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as GitHubStrategy } from "passport-github2";
+import { Strategy as DiscordStrategy } from "passport-discord";
+import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 
-const User = require("../models/User");
+import User from "../models/User.js";
 
 // JWT Strategy
 passport.use(
@@ -204,4 +203,4 @@ passport.deserializeUser(async (id, done) => {
 	}
 });
 
-module.exports = passport;
+export default passport;

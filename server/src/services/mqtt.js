@@ -1,7 +1,8 @@
-const mqtt = require("mqtt");
-const Device = require("../models/Device");
-const DeviceData = require("../models/DeviceData");
-const { wsManager } = require("./websocket");
+import mqtt from "mqtt";
+import Device from "../models/Device.js";
+import DeviceData from "../models/DeviceData.js";
+import { wsManager } from "./websocket.js";
+import crypto from "node:crypto";
 
 class MQTTManager {
 	constructor() {
@@ -335,7 +336,7 @@ class MQTTManager {
 		const payload = {
 			command,
 			timestamp: new Date().toISOString(),
-			commandId: require("crypto").randomUUID(),
+			commandId: crypto.randomUUID(),
 		};
 
 		this.publish(topic, payload);
@@ -396,13 +397,8 @@ class MQTTManager {
 	}
 }
 
-const mqttManager = new MQTTManager();
+export const mqttManager = new MQTTManager();
 
-const initMQTTClient = () => {
+export const initMQTTClient = () => {
 	return mqttManager.initMQTTClient();
-};
-
-module.exports = {
-	initMQTTClient,
-	mqttManager,
 };
