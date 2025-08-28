@@ -39,6 +39,7 @@ const authenticateDevice = async (req, res, next) => {
 
 // Routes accessible with DEVICE_TOKEN
 router.put("/:deviceId/status", authenticateDevice, async (req, res) => {
+	console.log(`📥 Status update from ${req.params.deviceId}:`, req.body);
 	try {
 		const device = await Device.findOne({
 			deviceId: req.params.deviceId,
@@ -80,6 +81,7 @@ router.put("/:deviceId/status", authenticateDevice, async (req, res) => {
 });
 
 router.post("/:deviceId/data", authenticateDevice, async (req, res) => {
+	console.log(`📥 Data from ${req.params.deviceId}:`, req.body);
 	try {
 		const device = await Device.findOne({
 			deviceId: req.params.deviceId,

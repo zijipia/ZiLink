@@ -319,6 +319,11 @@ const DashboardPage = () => {
 								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
 								👁️ Viewer
 							</Link>
+							<Link
+								href='/console'
+								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
+								📝 Raw Console
+							</Link>
 						</div>
 					</div>
 
