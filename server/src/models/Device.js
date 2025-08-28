@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+import crypto from "node:crypto";
 
 const deviceSchema = new mongoose.Schema(
 	{
@@ -320,7 +321,6 @@ deviceSchema.methods.updateStatus = async function (status) {
 
 // Method to rotate API key
 deviceSchema.methods.rotateApiKey = async function () {
-	const crypto = require("crypto");
 	this.security.apiKey = crypto.randomBytes(32).toString("hex");
 	this.security.lastKeyRotation = new Date();
 	return this.save();
@@ -343,4 +343,4 @@ deviceSchema.statics.findOnline = function () {
 
 const Device = mongoose.model("Device", deviceSchema);
 
-module.exports = Device;
+export default Device;

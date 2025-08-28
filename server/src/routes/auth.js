@@ -1,7 +1,8 @@
-const express = require("express");
-const passport = require("../config/passport");
-const { generateToken, generateRefreshToken } = require("../utils/jwt");
-const User = require("../models/User");
+import express from "express";
+import passport from "../config/passport.js";
+import { generateToken, generateRefreshToken } from "../utils/jwt.js";
+import User from "../models/User.js";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -193,8 +194,7 @@ router.post("/refresh", async (req, res) => {
 			});
 		}
 
-		const jwt = require("jsonwebtoken");
-
+		// Verify refresh token
 		// Verify refresh token
 		const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
 
@@ -274,4 +274,4 @@ router.put("/preferences", passport.authenticate("jwt", { session: false }), asy
 	}
 });
 
-module.exports = router;
+export default router;
