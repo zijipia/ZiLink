@@ -1,12 +1,14 @@
 # ZiLink IoT Platform
 
-ZiLink là một platform quản lý thiết bị IoT toàn diện được xây dựng với Node.js, Express, WebSocket, Next.js, và MongoDB. Platform hỗ trợ real-time data monitoring, device management, và OAuth authentication.
+ZiLink là một platform quản lý thiết bị IoT toàn diện được xây dựng với Node.js, Express, WebSocket, Next.js, và MongoDB. Platform
+hỗ trợ real-time data monitoring, device management, và OAuth authentication.
 
 ![ZiLink Architecture](docs/architecture-diagram.png)
 
 ## 🚀 Tính Năng
 
 ### Backend (Node.js + Express)
+
 - **RESTful API** cho device management
 - **WebSocket Server** cho real-time communication
 - **MQTT Broker Integration** cho IoT device communication
@@ -18,6 +20,7 @@ ZiLink là một platform quản lý thiết bị IoT toàn diện được xây
 - **Device Command & Control**
 
 ### Frontend (Next.js + TypeScript)
+
 - **Responsive Dashboard** với TailwindCSS
 - **Real-time Device Monitoring**
 - **Interactive Charts & Graphs**
@@ -28,6 +31,7 @@ ZiLink là một platform quản lý thiết bị IoT toàn diện được xây
 - **Mobile-friendly UI**
 
 ### IoT Device Support
+
 - **MQTT Protocol** support
 - **WebSocket** connections
 - **HTTP REST API** endpoints
@@ -196,6 +200,7 @@ npm start
 ```
 
 Ứng dụng sẽ chạy tại:
+
 - **Client**: http://localhost:3000
 - **Server**: http://localhost:3001
 - **WebSocket**: ws://localhost:3001/ws
@@ -206,6 +211,7 @@ npm start
 ### Authentication Endpoints
 
 #### Login
+
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -217,6 +223,7 @@ Content-Type: application/json
 ```
 
 #### Register
+
 ```http
 POST /api/auth/register
 Content-Type: application/json
@@ -229,6 +236,7 @@ Content-Type: application/json
 ```
 
 #### OAuth Login
+
 ```http
 GET /api/auth/google
 GET /api/auth/github
@@ -238,12 +246,14 @@ GET /api/auth/discord
 ### Device Management Endpoints
 
 #### Get Devices
+
 ```http
 GET /api/devices
 Authorization: Bearer <token>
 ```
 
 #### Register Device
+
 ```http
 POST /api/devices/register
 Authorization: Bearer <token>
@@ -258,6 +268,7 @@ Content-Type: application/json
 ```
 
 #### Send Device Command
+
 ```http
 POST /api/devices/{deviceId}/command
 Authorization: Bearer <token>
@@ -272,6 +283,7 @@ Content-Type: application/json
 ```
 
 #### Get Device Data
+
 ```http
 GET /api/devices/{deviceId}/data?limit=100&startDate=2023-01-01&endDate=2023-12-31
 Authorization: Bearer <token>
@@ -280,90 +292,106 @@ Authorization: Bearer <token>
 ## 🔌 WebSocket API
 
 ### Connection
+
 ```javascript
-const ws = new WebSocket('ws://localhost:3001/ws');
+const ws = new WebSocket("ws://localhost:3001/ws");
 
 // Authenticate
-ws.send(JSON.stringify({
-  type: 'auth',
-  data: {
-    token: 'your-jwt-token',
-    clientType: 'web' // or 'device'
-  }
-}));
+ws.send(
+	JSON.stringify({
+		type: "auth",
+		data: {
+			token: "your-jwt-token",
+			clientType: "web", // or 'device'
+		},
+	}),
+);
 ```
 
 ### Subscribe to Device
+
 ```javascript
-ws.send(JSON.stringify({
-  type: 'subscribe_device',
-  data: {
-    deviceId: 'your-device-id'
-  }
-}));
+ws.send(
+	JSON.stringify({
+		type: "subscribe_device",
+		data: {
+			deviceId: "your-device-id",
+		},
+	}),
+);
 ```
 
 ### Send Device Command
+
 ```javascript
-ws.send(JSON.stringify({
-  type: 'device_command',
-  data: {
-    deviceId: 'device-id',
-    command: { action: 'turn_on' }
-  }
-}));
+ws.send(
+	JSON.stringify({
+		type: "device_command",
+		data: {
+			deviceId: "device-id",
+			command: { action: "turn_on" },
+		},
+	}),
+);
 ```
 
 ## 📊 MQTT Topics
 
 ### Device Data
+
 ```
 zilink/devices/{deviceId}/data
 ```
 
 Payload:
+
 ```json
 {
-  "sensors": [
-    {
-      "type": "temperature",
-      "value": 25.5,
-      "unit": "°C"
-    }
-  ],
-  "deviceStatus": {
-    "battery": { "level": 85, "isCharging": false },
-    "signalStrength": -45
-  }
+	"sensors": [
+		{
+			"type": "temperature",
+			"value": 25.5,
+			"unit": "°C"
+		}
+	],
+	"deviceStatus": {
+		"battery": { "level": 85, "isCharging": false },
+		"signalStrength": -45
+	}
 }
 ```
 
 ### Device Status
+
 ```
 zilink/devices/{deviceId}/status
 ```
 
 ### Device Alerts
+
 ```
 zilink/devices/{deviceId}/alert
 ```
 
 Payload:
+
 ```json
 {
-  "type": "threshold",
-  "severity": "warning",
-  "message": "Temperature exceeded threshold",
-  "threshold": { "value": 30, "condition": ">" }
+	"type": "threshold",
+	"severity": "warning",
+	"message": "Temperature exceeded threshold",
+	"threshold": { "value": 30, "condition": ">" }
 }
 ```
 
 ### Device Commands (Subscribe)
+
 ```
 zilink/devices/{deviceId}/command
 ```
 
 ### Server Status
+
 ```
 zilink/server/status
 ```
@@ -417,7 +445,7 @@ void loop() {
     reconnect();
   }
   client.loop();
-  
+
   // Send sensor data every 30 seconds
   static unsigned long lastMsg = 0;
   unsigned long now = millis();
@@ -430,20 +458,20 @@ void loop() {
 void sendSensorData() {
   StaticJsonDocument<200> doc;
   JsonArray sensors = doc.createNestedArray("sensors");
-  
+
   JsonObject temp = sensors.createNestedObject();
   temp["type"] = "temperature";
   temp["value"] = 25.5;
   temp["unit"] = "°C";
-  
+
   JsonObject humid = sensors.createNestedObject();
   humid["type"] = "humidity";
   humid["value"] = 60.2;
   humid["unit"] = "%";
-  
+
   String payload;
   serializeJson(doc, payload);
-  
+
   String topic = "zilink/devices/" + String(device_id) + "/data";
   client.publish(topic.c_str(), payload.c_str());
 }
@@ -454,11 +482,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
   for (int i = 0; i < length; i++) {
     message += (char)payload[i];
   }
-  
+
   // Parse and execute command
   StaticJsonDocument<200> doc;
   deserializeJson(doc, message);
-  
+
   String action = doc["command"]["action"];
   if (action == "turn_on") {
     // Turn on device
@@ -484,24 +512,24 @@ class ZiLinkDevice:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.connect(mqtt_host, mqtt_port, 60)
-        
+
     def on_connect(self, client, userdata, flags, rc):
         print(f"Connected with result code {rc}")
         # Subscribe to command topic
         topic = f"zilink/devices/{self.device_id}/command"
         client.subscribe(topic)
-        
+
     def on_message(self, client, userdata, msg):
         try:
             command = json.loads(msg.payload.decode())
             self.handle_command(command)
         except Exception as e:
             print(f"Error handling command: {e}")
-            
+
     def handle_command(self, command):
         action = command.get("command", {}).get("action")
         print(f"Received command: {action}")
-        
+
     def send_sensor_data(self):
         data = {
             "sensors": [
@@ -511,7 +539,7 @@ class ZiLinkDevice:
                     "unit": "°C"
                 },
                 {
-                    "type": "humidity", 
+                    "type": "humidity",
                     "value": round(random.uniform(40, 80), 1),
                     "unit": "%"
                 }
@@ -522,11 +550,11 @@ class ZiLinkDevice:
             },
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
-        
+
         topic = f"zilink/devices/{self.device_id}/data"
         self.client.publish(topic, json.dumps(data))
         print(f"Sent data: {data}")
-        
+
     def run(self):
         self.client.loop_start()
         while True:
@@ -586,7 +614,7 @@ mosquitto_pub -h localhost -t "zilink/devices/test-device/data" \
 Tạo file `docker-compose.yml`:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   mongodb:
     image: mongo:latest
@@ -643,6 +671,7 @@ docker-compose up -d
 ### Production Deployment
 
 1. **Server Setup (Ubuntu)**:
+
 ```bash
 # Install Node.js
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
@@ -659,6 +688,7 @@ sudo apt install mosquitto mosquitto-clients
 ```
 
 2. **Deploy Application**:
+
 ```bash
 # Clone and build
 git clone https://github.com/your-username/zilink.git
@@ -673,6 +703,7 @@ pm2 startup
 ```
 
 3. **Reverse Proxy (Nginx)**:
+
 ```nginx
 server {
     listen 80;
@@ -725,6 +756,7 @@ server {
 ### Security Headers
 
 Server tự động thêm security headers thông qua Helmet.js:
+
 - X-Content-Type-Options
 - X-Frame-Options
 - X-XSS-Protection
@@ -761,7 +793,7 @@ Server tự động thêm security headers thông qua Helmet.js:
 cd server
 npm run dev
 
-# Client logs  
+# Client logs
 cd client
 npm run dev
 

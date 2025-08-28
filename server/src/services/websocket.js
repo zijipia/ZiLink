@@ -1,324 +1,324 @@
-const WebSocket = require('ws');
-const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
+const WebSocket = require("ws");
+const jwt = require("jsonwebtoken");
+const { v4: uuidv4 } = require("uuid");
 
 class WebSocketManager {
-  constructor() {
-    this.clients = new Map(); // Map of userId -> WebSocket connections
-    this.deviceConnections = new Map(); // Map of deviceId -> WebSocket connections
-  }
+	constructor() {
+		this.clients = new Map(); // Map of userId -> WebSocket connections
+		this.deviceConnections = new Map(); // Map of deviceId -> WebSocket connections
+	}
 
-  initWebSocketServer(server) {
-    this.wss = new WebSocket.Server({ 
-      server,
-      path: '/ws',
-      verifyClient: (info) => {
-        // You can add authentication logic here if needed
-        return true;
-      }
-    });
+	initWebSocketServer(server) {
+		this.wss = new WebSocket.Server({
+			server,
+			path: "/ws",
+			verifyClient: (info) => {
+				// You can add authentication logic here if needed
+				return true;
+			},
+		});
 
-    this.wss.on('connection', (ws, req) => {
-      const connectionId = uuidv4();
-      ws.connectionId = connectionId;
-      
-      console.log(`🔌 New WebSocket connection: ${connectionId}`);
+		this.wss.on("connection", (ws, req) => {
+			const connectionId = uuidv4();
+			ws.connectionId = connectionId;
 
-      // Handle incoming messages
-      ws.on('message', async (data) => {
-        try {
-          const message = JSON.parse(data.toString());
-          await this.handleMessage(ws, message);
-        } catch (error) {
-          console.error('❌ WebSocket message error:', error);
-          this.sendError(ws, 'Invalid message format');
-        }
-      });
+			console.log(`🔌 New WebSocket connection: ${connectionId}`);
 
-      // Handle connection close
-      ws.on('close', () => {
-        console.log(`🔌 WebSocket connection closed: ${connectionId}`);
-        this.removeConnection(ws);
-      });
+			// Handle incoming messages
+			ws.on("message", async (data) => {
+				try {
+					const message = JSON.parse(data.toString());
+					await this.handleMessage(ws, message);
+				} catch (error) {
+					console.error("❌ WebSocket message error:", error);
+					this.sendError(ws, "Invalid message format");
+				}
+			});
 
-      // Handle errors
-      ws.on('error', (error) => {
-        console.error('❌ WebSocket error:', error);
-        this.removeConnection(ws);
-      });
+			// Handle connection close
+			ws.on("close", () => {
+				console.log(`🔌 WebSocket connection closed: ${connectionId}`);
+				this.removeConnection(ws);
+			});
 
-      // Send welcome message
-      this.sendMessage(ws, {
-        type: 'connection',
-        data: {
-          connectionId,
-          message: 'Connected to ZiLink WebSocket server',
-          timestamp: new Date().toISOString()
-        }
-      });
-    });
+			// Handle errors
+			ws.on("error", (error) => {
+				console.error("❌ WebSocket error:", error);
+				this.removeConnection(ws);
+			});
 
-    console.log('🔌 WebSocket server initialized');
-    return this.wss;
-  }
+			// Send welcome message
+			this.sendMessage(ws, {
+				type: "connection",
+				data: {
+					connectionId,
+					message: "Connected to ZiLink WebSocket server",
+					timestamp: new Date().toISOString(),
+				},
+			});
+		});
 
-  async handleMessage(ws, message) {
-    const { type, data } = message;
+		console.log("🔌 WebSocket server initialized");
+		return this.wss;
+	}
 
-    switch (type) {
-      case 'auth':
-        await this.handleAuth(ws, data);
-        break;
-      
-      case 'device_register':
-        await this.handleDeviceRegister(ws, data);
-        break;
-      
-      case 'device_data':
-        await this.handleDeviceData(ws, data);
-        break;
-      
-      case 'device_command':
-        await this.handleDeviceCommand(ws, data);
-        break;
-      
-      case 'subscribe_device':
-        await this.handleSubscribeDevice(ws, data);
-        break;
-      
-      case 'ping':
-        this.sendMessage(ws, { type: 'pong', data: { timestamp: new Date().toISOString() } });
-        break;
-      
-      default:
-        this.sendError(ws, `Unknown message type: ${type}`);
-        break;
-    }
-  }
+	async handleMessage(ws, message) {
+		const { type, data } = message;
 
-  async handleAuth(ws, data) {
-    try {
-      const { token, clientType } = data; // clientType: 'web' | 'device'
-      
-      if (!token) {
-        return this.sendError(ws, 'Authentication token required');
-      }
+		switch (type) {
+			case "auth":
+				await this.handleAuth(ws, data);
+				break;
 
-      // Verify JWT token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
-      ws.userId = decoded.userId;
-      ws.clientType = clientType || 'web';
-      ws.authenticated = true;
+			case "device_register":
+				await this.handleDeviceRegister(ws, data);
+				break;
 
-      if (clientType === 'device') {
-        ws.deviceId = decoded.deviceId;
-        this.deviceConnections.set(decoded.deviceId, ws);
-      } else {
-        // Web client
-        if (!this.clients.has(decoded.userId)) {
-          this.clients.set(decoded.userId, new Set());
-        }
-        this.clients.get(decoded.userId).add(ws);
-      }
+			case "device_data":
+				await this.handleDeviceData(ws, data);
+				break;
 
-      this.sendMessage(ws, {
-        type: 'auth_success',
-        data: {
-          userId: decoded.userId,
-          clientType: ws.clientType,
-          message: 'Authentication successful'
-        }
-      });
+			case "device_command":
+				await this.handleDeviceCommand(ws, data);
+				break;
 
-      console.log(`✅ WebSocket authenticated: ${ws.clientType} - ${decoded.userId}`);
-    } catch (error) {
-      console.error('❌ WebSocket auth error:', error);
-      this.sendError(ws, 'Authentication failed');
-    }
-  }
+			case "subscribe_device":
+				await this.handleSubscribeDevice(ws, data);
+				break;
 
-  async handleDeviceRegister(ws, data) {
-    if (ws.clientType !== 'device') {
-      return this.sendError(ws, 'Only devices can register');
-    }
+			case "ping":
+				this.sendMessage(ws, { type: "pong", data: { timestamp: new Date().toISOString() } });
+				break;
 
-    const { deviceInfo } = data;
-    
-    // Here you would typically save device info to database
-    console.log(`📱 Device registered: ${ws.deviceId}`, deviceInfo);
-    
-    this.sendMessage(ws, {
-      type: 'device_registered',
-      data: {
-        deviceId: ws.deviceId,
-        message: 'Device registered successfully'
-      }
-    });
+			default:
+				this.sendError(ws, `Unknown message type: ${type}`);
+				break;
+		}
+	}
 
-    // Notify web clients about new device
-    this.broadcastToWebClients({
-      type: 'device_online',
-      data: {
-        deviceId: ws.deviceId,
-        deviceInfo,
-        timestamp: new Date().toISOString()
-      }
-    });
-  }
+	async handleAuth(ws, data) {
+		try {
+			const { token, clientType } = data; // clientType: 'web' | 'device'
 
-  async handleDeviceData(ws, data) {
-    if (ws.clientType !== 'device') {
-      return this.sendError(ws, 'Only devices can send data');
-    }
+			if (!token) {
+				return this.sendError(ws, "Authentication token required");
+			}
 
-    const { sensorData } = data;
-    
-    console.log(`📊 Device data received from ${ws.deviceId}:`, sensorData);
-    
-    // Here you would typically save the data to database
-    
-    // Broadcast to all web clients
-    this.broadcastToWebClients({
-      type: 'device_data',
-      data: {
-        deviceId: ws.deviceId,
-        sensorData,
-        timestamp: new Date().toISOString()
-      }
-    });
-  }
+			// Verify JWT token
+			const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-  async handleDeviceCommand(ws, data) {
-    if (ws.clientType !== 'web') {
-      return this.sendError(ws, 'Only web clients can send commands');
-    }
+			ws.userId = decoded.userId;
+			ws.clientType = clientType || "web";
+			ws.authenticated = true;
 
-    const { deviceId, command } = data;
-    
-    const deviceWs = this.deviceConnections.get(deviceId);
-    if (!deviceWs || deviceWs.readyState !== WebSocket.OPEN) {
-      return this.sendError(ws, 'Device not connected');
-    }
+			if (clientType === "device") {
+				ws.deviceId = decoded.deviceId;
+				this.deviceConnections.set(decoded.deviceId, ws);
+			} else {
+				// Web client
+				if (!this.clients.has(decoded.userId)) {
+					this.clients.set(decoded.userId, new Set());
+				}
+				this.clients.get(decoded.userId).add(ws);
+			}
 
-    // Send command to device
-    this.sendMessage(deviceWs, {
-      type: 'command',
-      data: {
-        command,
-        timestamp: new Date().toISOString()
-      }
-    });
+			this.sendMessage(ws, {
+				type: "auth_success",
+				data: {
+					userId: decoded.userId,
+					clientType: ws.clientType,
+					message: "Authentication successful",
+				},
+			});
 
-    // Confirm to web client
-    this.sendMessage(ws, {
-      type: 'command_sent',
-      data: {
-        deviceId,
-        command,
-        timestamp: new Date().toISOString()
-      }
-    });
+			console.log(`✅ WebSocket authenticated: ${ws.clientType} - ${decoded.userId}`);
+		} catch (error) {
+			console.error("❌ WebSocket auth error:", error);
+			this.sendError(ws, "Authentication failed");
+		}
+	}
 
-    console.log(`📤 Command sent to device ${deviceId}:`, command);
-  }
+	async handleDeviceRegister(ws, data) {
+		if (ws.clientType !== "device") {
+			return this.sendError(ws, "Only devices can register");
+		}
 
-  async handleSubscribeDevice(ws, data) {
-    if (ws.clientType !== 'web') {
-      return this.sendError(ws, 'Only web clients can subscribe');
-    }
+		const { deviceInfo } = data;
 
-    const { deviceId } = data;
-    
-    if (!ws.subscribedDevices) {
-      ws.subscribedDevices = new Set();
-    }
-    
-    ws.subscribedDevices.add(deviceId);
-    
-    this.sendMessage(ws, {
-      type: 'subscribed',
-      data: {
-        deviceId,
-        message: `Subscribed to device ${deviceId}`
-      }
-    });
+		// Here you would typically save device info to database
+		console.log(`📱 Device registered: ${ws.deviceId}`, deviceInfo);
 
-    console.log(`👀 Web client subscribed to device: ${deviceId}`);
-  }
+		this.sendMessage(ws, {
+			type: "device_registered",
+			data: {
+				deviceId: ws.deviceId,
+				message: "Device registered successfully",
+			},
+		});
 
-  sendMessage(ws, message) {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(message));
-    }
-  }
+		// Notify web clients about new device
+		this.broadcastToWebClients({
+			type: "device_online",
+			data: {
+				deviceId: ws.deviceId,
+				deviceInfo,
+				timestamp: new Date().toISOString(),
+			},
+		});
+	}
 
-  sendError(ws, error) {
-    this.sendMessage(ws, {
-      type: 'error',
-      data: {
-        error,
-        timestamp: new Date().toISOString()
-      }
-    });
-  }
+	async handleDeviceData(ws, data) {
+		if (ws.clientType !== "device") {
+			return this.sendError(ws, "Only devices can send data");
+		}
 
-  broadcastToWebClients(message) {
-    this.clients.forEach((connections, userId) => {
-      connections.forEach((ws) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          this.sendMessage(ws, message);
-        }
-      });
-    });
-  }
+		const { sensorData } = data;
 
-  broadcastToDevice(deviceId, message) {
-    const deviceWs = this.deviceConnections.get(deviceId);
-    if (deviceWs && deviceWs.readyState === WebSocket.OPEN) {
-      this.sendMessage(deviceWs, message);
-    }
-  }
+		console.log(`📊 Device data received from ${ws.deviceId}:`, sensorData);
 
-  removeConnection(ws) {
-    if (ws.clientType === 'device' && ws.deviceId) {
-      this.deviceConnections.delete(ws.deviceId);
-      
-      // Notify web clients that device is offline
-      this.broadcastToWebClients({
-        type: 'device_offline',
-        data: {
-          deviceId: ws.deviceId,
-          timestamp: new Date().toISOString()
-        }
-      });
-    } else if (ws.clientType === 'web' && ws.userId) {
-      const userConnections = this.clients.get(ws.userId);
-      if (userConnections) {
-        userConnections.delete(ws);
-        if (userConnections.size === 0) {
-          this.clients.delete(ws.userId);
-        }
-      }
-    }
-  }
+		// Here you would typically save the data to database
 
-  getConnectedDevices() {
-    return Array.from(this.deviceConnections.keys());
-  }
+		// Broadcast to all web clients
+		this.broadcastToWebClients({
+			type: "device_data",
+			data: {
+				deviceId: ws.deviceId,
+				sensorData,
+				timestamp: new Date().toISOString(),
+			},
+		});
+	}
 
-  getConnectedUsers() {
-    return Array.from(this.clients.keys());
-  }
+	async handleDeviceCommand(ws, data) {
+		if (ws.clientType !== "web") {
+			return this.sendError(ws, "Only web clients can send commands");
+		}
+
+		const { deviceId, command } = data;
+
+		const deviceWs = this.deviceConnections.get(deviceId);
+		if (!deviceWs || deviceWs.readyState !== WebSocket.OPEN) {
+			return this.sendError(ws, "Device not connected");
+		}
+
+		// Send command to device
+		this.sendMessage(deviceWs, {
+			type: "command",
+			data: {
+				command,
+				timestamp: new Date().toISOString(),
+			},
+		});
+
+		// Confirm to web client
+		this.sendMessage(ws, {
+			type: "command_sent",
+			data: {
+				deviceId,
+				command,
+				timestamp: new Date().toISOString(),
+			},
+		});
+
+		console.log(`📤 Command sent to device ${deviceId}:`, command);
+	}
+
+	async handleSubscribeDevice(ws, data) {
+		if (ws.clientType !== "web") {
+			return this.sendError(ws, "Only web clients can subscribe");
+		}
+
+		const { deviceId } = data;
+
+		if (!ws.subscribedDevices) {
+			ws.subscribedDevices = new Set();
+		}
+
+		ws.subscribedDevices.add(deviceId);
+
+		this.sendMessage(ws, {
+			type: "subscribed",
+			data: {
+				deviceId,
+				message: `Subscribed to device ${deviceId}`,
+			},
+		});
+
+		console.log(`👀 Web client subscribed to device: ${deviceId}`);
+	}
+
+	sendMessage(ws, message) {
+		if (ws.readyState === WebSocket.OPEN) {
+			ws.send(JSON.stringify(message));
+		}
+	}
+
+	sendError(ws, error) {
+		this.sendMessage(ws, {
+			type: "error",
+			data: {
+				error,
+				timestamp: new Date().toISOString(),
+			},
+		});
+	}
+
+	broadcastToWebClients(message) {
+		this.clients.forEach((connections, userId) => {
+			connections.forEach((ws) => {
+				if (ws.readyState === WebSocket.OPEN) {
+					this.sendMessage(ws, message);
+				}
+			});
+		});
+	}
+
+	broadcastToDevice(deviceId, message) {
+		const deviceWs = this.deviceConnections.get(deviceId);
+		if (deviceWs && deviceWs.readyState === WebSocket.OPEN) {
+			this.sendMessage(deviceWs, message);
+		}
+	}
+
+	removeConnection(ws) {
+		if (ws.clientType === "device" && ws.deviceId) {
+			this.deviceConnections.delete(ws.deviceId);
+
+			// Notify web clients that device is offline
+			this.broadcastToWebClients({
+				type: "device_offline",
+				data: {
+					deviceId: ws.deviceId,
+					timestamp: new Date().toISOString(),
+				},
+			});
+		} else if (ws.clientType === "web" && ws.userId) {
+			const userConnections = this.clients.get(ws.userId);
+			if (userConnections) {
+				userConnections.delete(ws);
+				if (userConnections.size === 0) {
+					this.clients.delete(ws.userId);
+				}
+			}
+		}
+	}
+
+	getConnectedDevices() {
+		return Array.from(this.deviceConnections.keys());
+	}
+
+	getConnectedUsers() {
+		return Array.from(this.clients.keys());
+	}
 }
 
 const wsManager = new WebSocketManager();
 
 const initWebSocketServer = (server) => {
-  return wsManager.initWebSocketServer(server);
+	return wsManager.initWebSocketServer(server);
 };
 
 module.exports = {
-  initWebSocketServer,
-  wsManager
+	initWebSocketServer,
+	wsManager,
 };

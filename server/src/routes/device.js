@@ -1,724 +1,692 @@
-const express = require('express');
-const passport = require('../config/passport');
-const Device = require('../models/Device');
-const DeviceData = require('../models/DeviceData');
-const { generateDeviceToken } = require('../utils/jwt');
-const { wsManager } = require('../services/websocket');
-const crypto = require('crypto');
+const express = require("express");
+const passport = require("../config/passport");
+const Device = require("../models/Device");
+const DeviceData = require("../models/DeviceData");
+const { generateDeviceToken } = require("../utils/jwt");
+const { wsManager } = require("../services/websocket");
+const crypto = require("crypto");
 
 const router = express.Router();
 
 // Middleware to authenticate all device routes
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(passport.authenticate("jwt", { session: false }));
 
 // Get all devices for the authenticated user
-router.get('/', async (req, res) => {
-  try {
-    const { type, status, limit = 50, page = 1 } = req.query;
-    
-    const options = {};
-    if (type) options.type = type;
-    if (status === 'online') options.isOnline = true;
-    if (status === 'offline') options.isOnline = false;
-    
-    const devices = await Device.findByOwner(req.user._id, {
-      ...options,
-      sort: { createdAt: -1 }
-    })
-    .limit(parseInt(limit))
-    .skip((parseInt(page) - 1) * parseInt(limit))
-    .populate('owner', 'name email');
-    
-    const total = await Device.countDocuments({ 
-      owner: req.user._id,
-      ...options 
-    });
-    
-    res.json({
-      success: true,
-      data: {
-        devices,
-        pagination: {
-          total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(total / parseInt(limit))
-        }
-      }
-    });
-    
-  } catch (error) {
-    console.error('Get devices error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.get("/", async (req, res) => {
+	try {
+		const { type, status, limit = 50, page = 1 } = req.query;
+
+		const options = {};
+		if (type) options.type = type;
+		if (status === "online") options.isOnline = true;
+		if (status === "offline") options.isOnline = false;
+
+		const devices = await Device.findByOwner(req.user._id, {
+			...options,
+			sort: { createdAt: -1 },
+		})
+			.limit(parseInt(limit))
+			.skip((parseInt(page) - 1) * parseInt(limit))
+			.populate("owner", "name email");
+
+		const total = await Device.countDocuments({
+			owner: req.user._id,
+			...options,
+		});
+
+		res.json({
+			success: true,
+			data: {
+				devices,
+				pagination: {
+					total,
+					page: parseInt(page),
+					limit: parseInt(limit),
+					pages: Math.ceil(total / parseInt(limit)),
+				},
+			},
+		});
+	} catch (error) {
+		console.error("Get devices error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Get specific device by ID
-router.get('/:deviceId', async (req, res) => {
-  try {
-    const device = await Device.findOne({
-      deviceId: req.params.deviceId,
-      owner: req.user._id
-    }).populate('owner', 'name email');
-    
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: 'Device not found'
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: device
-    });
-    
-  } catch (error) {
-    console.error('Get device error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.get("/:deviceId", async (req, res) => {
+	try {
+		const device = await Device.findOne({
+			deviceId: req.params.deviceId,
+			owner: req.user._id,
+		}).populate("owner", "name email");
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		res.json({
+			success: true,
+			data: device,
+		});
+	} catch (error) {
+		console.error("Get device error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Register a new device
-router.post('/register', async (req, res) => {
-  try {
-    const {
-      deviceId,
-      name,
-      description,
-      type,
-      category,
-      specifications,
-      capabilities,
-      location
-    } = req.body;
-    
-    if (!deviceId || !name || !type) {
-      return res.status(400).json({
-        success: false,
-        message: 'Device ID, name, and type are required'
-      });
-    }
-    
-    // Check if device already exists
-    const existingDevice = await Device.findOne({ deviceId });
-    if (existingDevice) {
-      return res.status(409).json({
-        success: false,
-        message: 'Device with this ID already exists'
-      });
-    }
-    
-    // Generate API key for device
-    const apiKey = crypto.randomBytes(32).toString('hex');
-    
-    // Create new device
-    const device = new Device({
-      deviceId,
-      name,
-      description: description || '',
-      type,
-      category: category || 'other',
-      owner: req.user._id,
-      specifications: specifications || {},
-      capabilities: capabilities || { sensors: [], actuators: [] },
-      location: location || {},
-      security: {
-        apiKey,
-        lastKeyRotation: new Date()
-      }
-    });
-    
-    await device.save();
-    
-    // Generate device token
-    const deviceToken = generateDeviceToken(deviceId, req.user._id);
-    
-    res.status(201).json({
-      success: true,
-      message: 'Device registered successfully',
-      data: {
-        device,
-        apiKey, // Return API key only once during registration
-        deviceToken
-      }
-    });
-    
-  } catch (error) {
-    console.error('Register device error:', error);
-    
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: 'Device with this ID already exists'
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.post("/register", async (req, res) => {
+	try {
+		const { deviceId, name, description, type, category, specifications, capabilities, location } = req.body;
+
+		if (!deviceId || !name || !type) {
+			return res.status(400).json({
+				success: false,
+				message: "Device ID, name, and type are required",
+			});
+		}
+
+		// Check if device already exists
+		const existingDevice = await Device.findOne({ deviceId });
+		if (existingDevice) {
+			return res.status(409).json({
+				success: false,
+				message: "Device with this ID already exists",
+			});
+		}
+
+		// Generate API key for device
+		const apiKey = crypto.randomBytes(32).toString("hex");
+
+		// Create new device
+		const device = new Device({
+			deviceId,
+			name,
+			description: description || "",
+			type,
+			category: category || "other",
+			owner: req.user._id,
+			specifications: specifications || {},
+			capabilities: capabilities || { sensors: [], actuators: [] },
+			location: location || {},
+			security: {
+				apiKey,
+				lastKeyRotation: new Date(),
+			},
+		});
+
+		await device.save();
+
+		// Generate device token
+		const deviceToken = generateDeviceToken(deviceId, req.user._id);
+
+		res.status(201).json({
+			success: true,
+			message: "Device registered successfully",
+			data: {
+				device,
+				apiKey, // Return API key only once during registration
+				deviceToken,
+			},
+		});
+	} catch (error) {
+		console.error("Register device error:", error);
+
+		if (error.code === 11000) {
+			return res.status(409).json({
+				success: false,
+				message: "Device with this ID already exists",
+			});
+		}
+
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Update device information
-router.put('/:deviceId', async (req, res) => {
-  try {
-    const device = await Device.findOne({
-      deviceId: req.params.deviceId,
-      owner: req.user._id
-    });
-    
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: 'Device not found'
-      });
-    }
-    
-    const allowedUpdates = [
-      'name', 'description', 'type', 'category', 
-      'specifications', 'capabilities', 'configuration', 
-      'location', 'tags', 'metadata'
-    ];
-    
-    const updates = {};
-    Object.keys(req.body).forEach(key => {
-      if (allowedUpdates.includes(key)) {
-        updates[key] = req.body[key];
-      }
-    });
-    
-    Object.assign(device, updates);
-    await device.save();
-    
-    res.json({
-      success: true,
-      message: 'Device updated successfully',
-      data: device
-    });
-    
-  } catch (error) {
-    console.error('Update device error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.put("/:deviceId", async (req, res) => {
+	try {
+		const device = await Device.findOne({
+			deviceId: req.params.deviceId,
+			owner: req.user._id,
+		});
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		const allowedUpdates = [
+			"name",
+			"description",
+			"type",
+			"category",
+			"specifications",
+			"capabilities",
+			"configuration",
+			"location",
+			"tags",
+			"metadata",
+		];
+
+		const updates = {};
+		Object.keys(req.body).forEach((key) => {
+			if (allowedUpdates.includes(key)) {
+				updates[key] = req.body[key];
+			}
+		});
+
+		Object.assign(device, updates);
+		await device.save();
+
+		res.json({
+			success: true,
+			message: "Device updated successfully",
+			data: device,
+		});
+	} catch (error) {
+		console.error("Update device error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Delete device
-router.delete('/:deviceId', async (req, res) => {
-  try {
-    const device = await Device.findOne({
-      deviceId: req.params.deviceId,
-      owner: req.user._id
-    });
-    
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: 'Device not found'
-      });
-    }
-    
-    // Soft delete by setting isActive to false
-    device.isActive = false;
-    await device.save();
-    
-    // Optionally delete all device data
-    // await DeviceData.deleteMany({ deviceId: req.params.deviceId });
-    
-    res.json({
-      success: true,
-      message: 'Device deleted successfully'
-    });
-    
-  } catch (error) {
-    console.error('Delete device error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.delete("/:deviceId", async (req, res) => {
+	try {
+		const device = await Device.findOne({
+			deviceId: req.params.deviceId,
+			owner: req.user._id,
+		});
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		// Soft delete by setting isActive to false
+		device.isActive = false;
+		await device.save();
+
+		// Optionally delete all device data
+		// await DeviceData.deleteMany({ deviceId: req.params.deviceId });
+
+		res.json({
+			success: true,
+			message: "Device deleted successfully",
+		});
+	} catch (error) {
+		console.error("Delete device error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Get device data
-router.get('/:deviceId/data', async (req, res) => {
-  try {
-    const { startDate, endDate, limit = 100, page = 1, interval } = req.query;
-    
-    // Verify device ownership
-    const device = await Device.findOne({
-      deviceId: req.params.deviceId,
-      owner: req.user._id
-    });
-    
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: 'Device not found'
-      });
-    }
-    
-    let data;
-    
-    if (interval && startDate && endDate) {
-      // Return aggregated data
-      data = await DeviceData.aggregateByInterval(
-        req.params.deviceId,
-        interval,
-        new Date(startDate),
-        new Date(endDate)
-      );
-    } else if (startDate && endDate) {
-      // Return raw data within time range
-      data = await DeviceData.findByTimeRange(
-        req.params.deviceId,
-        new Date(startDate),
-        new Date(endDate)
-      );
-    } else {
-      // Return latest data
-      data = await DeviceData.findLatestByDevice(
-        req.params.deviceId,
-        parseInt(limit)
-      );
-    }
-    
-    res.json({
-      success: true,
-      data: {
-        deviceId: req.params.deviceId,
-        data,
-        count: Array.isArray(data) ? data.length : 1
-      }
-    });
-    
-  } catch (error) {
-    console.error('Get device data error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.get("/:deviceId/data", async (req, res) => {
+	try {
+		const { startDate, endDate, limit = 100, page = 1, interval } = req.query;
+
+		// Verify device ownership
+		const device = await Device.findOne({
+			deviceId: req.params.deviceId,
+			owner: req.user._id,
+		});
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		let data;
+
+		if (interval && startDate && endDate) {
+			// Return aggregated data
+			data = await DeviceData.aggregateByInterval(req.params.deviceId, interval, new Date(startDate), new Date(endDate));
+		} else if (startDate && endDate) {
+			// Return raw data within time range
+			data = await DeviceData.findByTimeRange(req.params.deviceId, new Date(startDate), new Date(endDate));
+		} else {
+			// Return latest data
+			data = await DeviceData.findLatestByDevice(req.params.deviceId, parseInt(limit));
+		}
+
+		res.json({
+			success: true,
+			data: {
+				deviceId: req.params.deviceId,
+				data,
+				count: Array.isArray(data) ? data.length : 1,
+			},
+		});
+	} catch (error) {
+		console.error("Get device data error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Send command to device
-router.post('/:deviceId/command', async (req, res) => {
-  try {
-    const { command } = req.body;
-    
-    if (!command) {
-      return res.status(400).json({
-        success: false,
-        message: 'Command is required'
-      });
-    }
-    
-    // Verify device ownership
-    const device = await Device.findOne({
-      deviceId: req.params.deviceId,
-      owner: req.user._id
-    });
-    
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: 'Device not found'
-      });
-    }
-    
-    // Check if device is online
-    if (!device.status.isOnline) {
-      return res.status(503).json({
-        success: false,
-        message: 'Device is offline'
-      });
-    }
-    
-    // Send command via WebSocket
-    const connectedDevices = wsManager.getConnectedDevices();
-    if (!connectedDevices.includes(req.params.deviceId)) {
-      return res.status(503).json({
-        success: false,
-        message: 'Device not connected via WebSocket'
-      });
-    }
-    
-    wsManager.broadcastToDevice(req.params.deviceId, {
-      type: 'command',
-      data: {
-        command,
-        timestamp: new Date().toISOString(),
-        commandId: crypto.randomUUID()
-      }
-    });
-    
-    res.json({
-      success: true,
-      message: 'Command sent successfully',
-      data: {
-        deviceId: req.params.deviceId,
-        command,
-        timestamp: new Date().toISOString()
-      }
-    });
-    
-  } catch (error) {
-    console.error('Send command error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.post("/:deviceId/command", async (req, res) => {
+	try {
+		const { command } = req.body;
+
+		if (!command) {
+			return res.status(400).json({
+				success: false,
+				message: "Command is required",
+			});
+		}
+
+		// Verify device ownership
+		const device = await Device.findOne({
+			deviceId: req.params.deviceId,
+			owner: req.user._id,
+		});
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		// Check if device is online
+		if (!device.status.isOnline) {
+			return res.status(503).json({
+				success: false,
+				message: "Device is offline",
+			});
+		}
+
+		// Send command via WebSocket
+		const connectedDevices = wsManager.getConnectedDevices();
+		if (!connectedDevices.includes(req.params.deviceId)) {
+			return res.status(503).json({
+				success: false,
+				message: "Device not connected via WebSocket",
+			});
+		}
+
+		wsManager.broadcastToDevice(req.params.deviceId, {
+			type: "command",
+			data: {
+				command,
+				timestamp: new Date().toISOString(),
+				commandId: crypto.randomUUID(),
+			},
+		});
+
+		res.json({
+			success: true,
+			message: "Command sent successfully",
+			data: {
+				deviceId: req.params.deviceId,
+				command,
+				timestamp: new Date().toISOString(),
+			},
+		});
+	} catch (error) {
+		console.error("Send command error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Rotate device API key
-router.post('/:deviceId/rotate-key', async (req, res) => {
-  try {
-    const device = await Device.findOne({
-      deviceId: req.params.deviceId,
-      owner: req.user._id
-    });
-    
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: 'Device not found'
-      });
-    }
-    
-    await device.rotateApiKey();
-    
-    res.json({
-      success: true,
-      message: 'API key rotated successfully',
-      data: {
-        deviceId: req.params.deviceId,
-        newApiKey: device.security.apiKey,
-        rotatedAt: device.security.lastKeyRotation
-      }
-    });
-    
-  } catch (error) {
-    console.error('Rotate API key error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.post("/:deviceId/rotate-key", async (req, res) => {
+	try {
+		const device = await Device.findOne({
+			deviceId: req.params.deviceId,
+			owner: req.user._id,
+		});
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		await device.rotateApiKey();
+
+		res.json({
+			success: true,
+			message: "API key rotated successfully",
+			data: {
+				deviceId: req.params.deviceId,
+				newApiKey: device.security.apiKey,
+				rotatedAt: device.security.lastKeyRotation,
+			},
+		});
+	} catch (error) {
+		console.error("Rotate API key error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Get device statistics
-router.get('/:deviceId/stats', async (req, res) => {
-  try {
-    const { period = '24h' } = req.query;
-    
-    // Verify device ownership
-    const device = await Device.findOne({
-      deviceId: req.params.deviceId,
-      owner: req.user._id
-    });
-    
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: 'Device not found'
-      });
-    }
-    
-    // Calculate time range based on period
-    const now = new Date();
-    let startDate;
-    
-    switch (period) {
-      case '1h':
-        startDate = new Date(now.getTime() - 60 * 60 * 1000);
-        break;
-      case '24h':
-        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case '7d':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case '30d':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    }
-    
-    // Get data count
-    const totalDataPoints = await DeviceData.countDocuments({
-      deviceId: req.params.deviceId,
-      timestamp: { $gte: startDate }
-    });
-    
-    // Get latest data
-    const latestData = await DeviceData.findLatestByDevice(req.params.deviceId, 1);
-    
-    // Get alerts count
-    const alertsCount = await DeviceData.countDocuments({
-      deviceId: req.params.deviceId,
-      'alerts.acknowledged': false
-    });
-    
-    res.json({
-      success: true,
-      data: {
-        deviceId: req.params.deviceId,
-        period,
-        stats: {
-          totalDataPoints,
-          alertsCount,
-          uptime: device.status.isOnline ? device.age : 0,
-          lastSeen: device.status.lastSeen,
-          batteryLevel: device.status.battery?.level,
-          signalStrength: device.network.signalStrength
-        },
-        latestData: latestData[0] || null
-      }
-    });
-    
-  } catch (error) {
-    console.error('Get device stats error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.get("/:deviceId/stats", async (req, res) => {
+	try {
+		const { period = "24h" } = req.query;
+
+		// Verify device ownership
+		const device = await Device.findOne({
+			deviceId: req.params.deviceId,
+			owner: req.user._id,
+		});
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		// Calculate time range based on period
+		const now = new Date();
+		let startDate;
+
+		switch (period) {
+			case "1h":
+				startDate = new Date(now.getTime() - 60 * 60 * 1000);
+				break;
+			case "24h":
+				startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+				break;
+			case "7d":
+				startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+				break;
+			case "30d":
+				startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+				break;
+			default:
+				startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+		}
+
+		// Get data count
+		const totalDataPoints = await DeviceData.countDocuments({
+			deviceId: req.params.deviceId,
+			timestamp: { $gte: startDate },
+		});
+
+		// Get latest data
+		const latestData = await DeviceData.findLatestByDevice(req.params.deviceId, 1);
+
+		// Get alerts count
+		const alertsCount = await DeviceData.countDocuments({
+			deviceId: req.params.deviceId,
+			"alerts.acknowledged": false,
+		});
+
+		res.json({
+			success: true,
+			data: {
+				deviceId: req.params.deviceId,
+				period,
+				stats: {
+					totalDataPoints,
+					alertsCount,
+					uptime: device.status.isOnline ? device.age : 0,
+					lastSeen: device.status.lastSeen,
+					batteryLevel: device.status.battery?.level,
+					signalStrength: device.network.signalStrength,
+				},
+				latestData: latestData[0] || null,
+			},
+		});
+	} catch (error) {
+		console.error("Get device stats error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Update device status (for devices to report their status)
-router.put('/:deviceId/status', async (req, res) => {
-  try {
-    const device = await Device.findOne({
-      deviceId: req.params.deviceId,
-      owner: req.user._id
-    });
-    
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: 'Device not found'
-      });
-    }
-    
-    const { status } = req.body;
-    await device.updateStatus(status);
-    
-    // Broadcast status update to web clients
-    wsManager.broadcastToWebClients({
-      type: 'device_status_update',
-      data: {
-        deviceId: req.params.deviceId,
-        status: device.status,
-        timestamp: new Date().toISOString()
-      }
-    });
-    
-    res.json({
-      success: true,
-      message: 'Device status updated successfully',
-      data: device.status
-    });
-    
-  } catch (error) {
-    console.error('Update device status error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.put("/:deviceId/status", async (req, res) => {
+	try {
+		const device = await Device.findOne({
+			deviceId: req.params.deviceId,
+			owner: req.user._id,
+		});
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		const { status } = req.body;
+		await device.updateStatus(status);
+
+		// Broadcast status update to web clients
+		wsManager.broadcastToWebClients({
+			type: "device_status_update",
+			data: {
+				deviceId: req.params.deviceId,
+				status: device.status,
+				timestamp: new Date().toISOString(),
+			},
+		});
+
+		res.json({
+			success: true,
+			message: "Device status updated successfully",
+			data: device.status,
+		});
+	} catch (error) {
+		console.error("Update device status error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Submit device data (for devices to send sensor data)
-router.post('/:deviceId/data', async (req, res) => {
-  try {
-    const device = await Device.findOne({
-      deviceId: req.params.deviceId,
-      owner: req.user._id
-    });
-    
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: 'Device not found'
-      });
-    }
-    
-    const { sensors, data, deviceStatus, location, metadata } = req.body;
-    
-    if (!sensors || !Array.isArray(sensors) || sensors.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Sensor data is required'
-      });
-    }
-    
-    // Create device data entry
-    const deviceData = new DeviceData({
-      device: device._id,
-      deviceId: req.params.deviceId,
-      data: data || {},
-      sensors,
-      deviceStatus: deviceStatus || {},
-      location: location || {},
-      metadata: {
-        source: 'http',
-        ...metadata
-      }
-    });
-    
-    // Validate data
-    deviceData.validateData();
-    
-    await deviceData.save();
-    
-    // Update device last seen
-    await device.updateStatus({
-      isOnline: true,
-      lastSeen: new Date(),
-      ...deviceStatus
-    });
-    
-    // Broadcast to web clients
-    wsManager.broadcastToWebClients({
-      type: 'device_data',
-      data: {
-        deviceId: req.params.deviceId,
-        sensorData: sensors,
-        timestamp: deviceData.timestamp
-      }
-    });
-    
-    res.status(201).json({
-      success: true,
-      message: 'Device data saved successfully',
-      data: {
-        id: deviceData._id,
-        timestamp: deviceData.timestamp
-      }
-    });
-    
-  } catch (error) {
-    console.error('Submit device data error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.post("/:deviceId/data", async (req, res) => {
+	try {
+		const device = await Device.findOne({
+			deviceId: req.params.deviceId,
+			owner: req.user._id,
+		});
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		const { sensors, data, deviceStatus, location, metadata } = req.body;
+
+		if (!sensors || !Array.isArray(sensors) || sensors.length === 0) {
+			return res.status(400).json({
+				success: false,
+				message: "Sensor data is required",
+			});
+		}
+
+		// Create device data entry
+		const deviceData = new DeviceData({
+			device: device._id,
+			deviceId: req.params.deviceId,
+			data: data || {},
+			sensors,
+			deviceStatus: deviceStatus || {},
+			location: location || {},
+			metadata: {
+				source: "http",
+				...metadata,
+			},
+		});
+
+		// Validate data
+		deviceData.validateData();
+
+		await deviceData.save();
+
+		// Update device last seen
+		await device.updateStatus({
+			isOnline: true,
+			lastSeen: new Date(),
+			...deviceStatus,
+		});
+
+		// Broadcast to web clients
+		wsManager.broadcastToWebClients({
+			type: "device_data",
+			data: {
+				deviceId: req.params.deviceId,
+				sensorData: sensors,
+				timestamp: deviceData.timestamp,
+			},
+		});
+
+		res.status(201).json({
+			success: true,
+			message: "Device data saved successfully",
+			data: {
+				id: deviceData._id,
+				timestamp: deviceData.timestamp,
+			},
+		});
+	} catch (error) {
+		console.error("Submit device data error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Get connected devices status
-router.get('/status/connected', async (req, res) => {
-  try {
-    const connectedDeviceIds = wsManager.getConnectedDevices();
-    
-    const devices = await Device.find({
-      deviceId: { $in: connectedDeviceIds },
-      owner: req.user._id
-    }).select('deviceId name type status');
-    
-    res.json({
-      success: true,
-      data: {
-        connectedCount: connectedDeviceIds.length,
-        devices
-      }
-    });
-    
-  } catch (error) {
-    console.error('Get connected devices error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.get("/status/connected", async (req, res) => {
+	try {
+		const connectedDeviceIds = wsManager.getConnectedDevices();
+
+		const devices = await Device.find({
+			deviceId: { $in: connectedDeviceIds },
+			owner: req.user._id,
+		}).select("deviceId name type status");
+
+		res.json({
+			success: true,
+			data: {
+				connectedCount: connectedDeviceIds.length,
+				devices,
+			},
+		});
+	} catch (error) {
+		console.error("Get connected devices error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Get alerts for user's devices
-router.get('/alerts/unacknowledged', async (req, res) => {
-  try {
-    const { severity } = req.query;
-    
-    // Get user's devices
-    const userDevices = await Device.find({ owner: req.user._id }).select('deviceId');
-    const deviceIds = userDevices.map(d => d.deviceId);
-    
-    const match = { 
-      deviceId: { $in: deviceIds },
-      'alerts.acknowledged': false 
-    };
-    
-    if (severity) {
-      match['alerts.severity'] = severity;
-    }
-    
-    const alertData = await DeviceData.find(match)
-      .populate('device', 'name type')
-      .sort({ timestamp: -1 })
-      .limit(100);
-    
-    res.json({
-      success: true,
-      data: alertData
-    });
-    
-  } catch (error) {
-    console.error('Get alerts error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.get("/alerts/unacknowledged", async (req, res) => {
+	try {
+		const { severity } = req.query;
+
+		// Get user's devices
+		const userDevices = await Device.find({ owner: req.user._id }).select("deviceId");
+		const deviceIds = userDevices.map((d) => d.deviceId);
+
+		const match = {
+			deviceId: { $in: deviceIds },
+			"alerts.acknowledged": false,
+		};
+
+		if (severity) {
+			match["alerts.severity"] = severity;
+		}
+
+		const alertData = await DeviceData.find(match).populate("device", "name type").sort({ timestamp: -1 }).limit(100);
+
+		res.json({
+			success: true,
+			data: alertData,
+		});
+	} catch (error) {
+		console.error("Get alerts error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Acknowledge alert
-router.post('/alerts/:alertId/acknowledge', async (req, res) => {
-  try {
-    const { alertId } = req.params;
-    const { dataId, alertIndex } = req.body;
-    
-    const deviceData = await DeviceData.findById(dataId)
-      .populate('device', 'owner');
-    
-    if (!deviceData) {
-      return res.status(404).json({
-        success: false,
-        message: 'Alert data not found'
-      });
-    }
-    
-    // Check ownership
-    if (deviceData.device.owner.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied'
-      });
-    }
-    
-    await deviceData.acknowledgeAlert(alertIndex, req.user._id);
-    
-    res.json({
-      success: true,
-      message: 'Alert acknowledged successfully'
-    });
-    
-  } catch (error) {
-    console.error('Acknowledge alert error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
+router.post("/alerts/:alertId/acknowledge", async (req, res) => {
+	try {
+		const { alertId } = req.params;
+		const { dataId, alertIndex } = req.body;
+
+		const deviceData = await DeviceData.findById(dataId).populate("device", "owner");
+
+		if (!deviceData) {
+			return res.status(404).json({
+				success: false,
+				message: "Alert data not found",
+			});
+		}
+
+		// Check ownership
+		if (deviceData.device.owner.toString() !== req.user._id.toString()) {
+			return res.status(403).json({
+				success: false,
+				message: "Access denied",
+			});
+		}
+
+		await deviceData.acknowledgeAlert(alertIndex, req.user._id);
+
+		res.json({
+			success: true,
+			message: "Alert acknowledged successfully",
+		});
+	} catch (error) {
+		console.error("Acknowledge alert error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 module.exports = router;
