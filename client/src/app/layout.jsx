@@ -1,8 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { Toaster } from "react-hot-toast";
 import ThemeToggle from "@/components/ThemeToggle";
+import ToastProvider from "@/components/ui/toaster";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -33,16 +33,7 @@ export default function RootLayout({ children }) {
 				<AuthProvider>
 					<ThemeToggle />
 					{children}
-					<Toaster
-						position='top-right'
-						toastOptions={{
-							duration: 4000,
-							style: {
-								background: "#363636",
-								color: "#fff",
-							},
-						}}
-					/>
+					<ToastProvider />
 				</AuthProvider>
 			</body>
 		</html>
