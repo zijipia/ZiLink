@@ -125,7 +125,6 @@ const shutdown = async () => {
 		console.log(`👋 ${signal} received, shutting down gracefully`);
 		shutdown();
 	});
-
 });
 
 export default app;
