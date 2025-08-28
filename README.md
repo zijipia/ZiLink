@@ -43,6 +43,7 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **Command & control capabilities**
 - **Alert & notification system**
 - **Arduino library for ESP32 với xác thực token và kết nối HTTP/WebSocket/MQTT**
+- **DEVICE_TOKEN authentication cho việc gửi dữ liệu và cập nhật trạng thái thiết bị**
 
 ## 📋 Yêu Cầu Hệ Thống
 

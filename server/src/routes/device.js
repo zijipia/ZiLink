@@ -2,13 +2,156 @@ const express = require("express");
 const passport = require("../config/passport");
 const Device = require("../models/Device");
 const DeviceData = require("../models/DeviceData");
-const { generateDeviceToken } = require("../utils/jwt");
+const { generateDeviceToken, verifyToken } = require("../utils/jwt");
 const { wsManager } = require("../services/websocket");
 const crypto = require("crypto");
 
 const router = express.Router();
 
-// Middleware to authenticate all device routes
+// Device token authentication middleware
+const authenticateDevice = async (req, res, next) => {
+	const authHeader = req.headers["authorization"] || "";
+	const token = authHeader.split(" ")[1];
+	if (!token) {
+		return res.status(401).json({
+			success: false,
+			message: "Device token required",
+		});
+	}
+	try {
+		const decoded = verifyToken(token);
+		if (!decoded.deviceId || decoded.deviceId !== req.params.deviceId) {
+			return res.status(403).json({
+				success: false,
+				message: "Invalid device token",
+			});
+		}
+		// Attach user info for existing handlers
+		req.user = { _id: decoded.userId };
+		next();
+	} catch (error) {
+		return res.status(401).json({
+			success: false,
+			message: "Invalid device token",
+		});
+	}
+};
+
+// Routes accessible with DEVICE_TOKEN
+router.put("/:deviceId/status", authenticateDevice, async (req, res) => {
+	try {
+		const device = await Device.findOne({
+			deviceId: req.params.deviceId,
+			owner: req.user._id,
+		});
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		const { status } = req.body;
+		await device.updateStatus(status);
+
+		// Broadcast status update to web clients
+		wsManager.broadcastToWebClients({
+			type: "device_status_update",
+			data: {
+				deviceId: req.params.deviceId,
+				status: device.status,
+				timestamp: new Date().toISOString(),
+			},
+		});
+
+		res.json({
+			success: true,
+			message: "Device status updated successfully",
+			data: device.status,
+		});
+	} catch (error) {
+		console.error("Update device status error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
+});
+
+router.post("/:deviceId/data", authenticateDevice, async (req, res) => {
+	try {
+		const device = await Device.findOne({
+			deviceId: req.params.deviceId,
+			owner: req.user._id,
+		});
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		const { sensors, data, deviceStatus, location, metadata } = req.body;
+
+		if (!sensors || !Array.isArray(sensors) || sensors.length === 0) {
+			return res.status(400).json({
+				success: false,
+				message: "Sensor data is required",
+			});
+		}
+
+		// Create device data entry
+		const deviceData = new DeviceData({
+			device: device._id,
+			deviceId: req.params.deviceId,
+			data: data || {},
+			sensors,
+			deviceStatus: deviceStatus || {},
+			location: location || {},
+			metadata: {
+				source: "http",
+				...metadata,
+			},
+		});
+
+		// Validate data
+		deviceData.validateData();
+
+		await deviceData.save();
+
+		// Update device last seen
+		await device.updateStatus({
+			isOnline: true,
+			lastSeen: new Date(),
+			...deviceStatus,
+		});
+
+		// Broadcast to web clients
+		wsManager.broadcastToWebClients({
+			type: "device_data",
+			data: {
+				deviceId: req.params.deviceId,
+				sensorData: sensors,
+				timestamp: deviceData.timestamp,
+			},
+		});
+
+		res.status(201).json({
+			success: true,
+			message: "Device data saved successfully",
+		});
+	} catch (error) {
+		console.error("Submit device data error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
+});
+
+// Middleware to authenticate user routes
 router.use(passport.authenticate("jwt", { session: false }));
 
 // Get all devices for the authenticated user
@@ -474,124 +617,6 @@ router.get("/:deviceId/stats", async (req, res) => {
 });
 
 // Update device status (for devices to report their status)
-router.put("/:deviceId/status", async (req, res) => {
-	try {
-		const device = await Device.findOne({
-			deviceId: req.params.deviceId,
-			owner: req.user._id,
-		});
-
-		if (!device) {
-			return res.status(404).json({
-				success: false,
-				message: "Device not found",
-			});
-		}
-
-		const { status } = req.body;
-		await device.updateStatus(status);
-
-		// Broadcast status update to web clients
-		wsManager.broadcastToWebClients({
-			type: "device_status_update",
-			data: {
-				deviceId: req.params.deviceId,
-				status: device.status,
-				timestamp: new Date().toISOString(),
-			},
-		});
-
-		res.json({
-			success: true,
-			message: "Device status updated successfully",
-			data: device.status,
-		});
-	} catch (error) {
-		console.error("Update device status error:", error);
-		res.status(500).json({
-			success: false,
-			message: "Internal server error",
-		});
-	}
-});
-
-// Submit device data (for devices to send sensor data)
-router.post("/:deviceId/data", async (req, res) => {
-	try {
-		const device = await Device.findOne({
-			deviceId: req.params.deviceId,
-			owner: req.user._id,
-		});
-
-		if (!device) {
-			return res.status(404).json({
-				success: false,
-				message: "Device not found",
-			});
-		}
-
-		const { sensors, data, deviceStatus, location, metadata } = req.body;
-
-		if (!sensors || !Array.isArray(sensors) || sensors.length === 0) {
-			return res.status(400).json({
-				success: false,
-				message: "Sensor data is required",
-			});
-		}
-
-		// Create device data entry
-		const deviceData = new DeviceData({
-			device: device._id,
-			deviceId: req.params.deviceId,
-			data: data || {},
-			sensors,
-			deviceStatus: deviceStatus || {},
-			location: location || {},
-			metadata: {
-				source: "http",
-				...metadata,
-			},
-		});
-
-		// Validate data
-		deviceData.validateData();
-
-		await deviceData.save();
-
-		// Update device last seen
-		await device.updateStatus({
-			isOnline: true,
-			lastSeen: new Date(),
-			...deviceStatus,
-		});
-
-		// Broadcast to web clients
-		wsManager.broadcastToWebClients({
-			type: "device_data",
-			data: {
-				deviceId: req.params.deviceId,
-				sensorData: sensors,
-				timestamp: deviceData.timestamp,
-			},
-		});
-
-		res.status(201).json({
-			success: true,
-			message: "Device data saved successfully",
-			data: {
-				id: deviceData._id,
-				timestamp: deviceData.timestamp,
-			},
-		});
-	} catch (error) {
-		console.error("Submit device data error:", error);
-		res.status(500).json({
-			success: false,
-			message: "Internal server error",
-		});
-	}
-});
-
 // Get connected devices status
 router.get("/status/connected", async (req, res) => {
 	try {
