@@ -9,7 +9,6 @@ import apiService from "@/lib/api";
  * @returns {React.JSX.Element}
  */
 export default function NewDevicePage() {
-	const [deviceId, setDeviceId] = useState("");
 	const [name, setName] = useState("");
 	const [type, setType] = useState("");
 	const router = useRouter();
@@ -21,7 +20,8 @@ export default function NewDevicePage() {
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		try {
-			await apiService.registerDevice({ deviceId, name, type });
+			const result = await apiService.registerDevice({ name, type });
+			alert(`Registered device ID: ${result.device.deviceId}`);
 			router.push("/dashboard");
 		} catch (err) {
 			// Errors are handled by apiService toast notifications
@@ -35,21 +35,7 @@ export default function NewDevicePage() {
 				onSubmit={handleSubmit}
 				className='w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded shadow'>
 				<h1 className='text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100'>Add New Device</h1>
-				<div className='mb-4'>
-					<label
-						className='block text-sm mb-1'
-						htmlFor='deviceId'>
-						Device ID
-					</label>
-					<input
-						id='deviceId'
-						type='text'
-						required
-						value={deviceId}
-						onChange={(e) => setDeviceId(e.target.value)}
-						className='w-full px-3 py-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-					/>
-				</div>
+				{/* Device ID is generated automatically on the server */}
 				<div className='mb-4'>
 					<label
 						className='block text-sm mb-1'

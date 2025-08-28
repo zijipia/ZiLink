@@ -231,16 +231,19 @@ router.get("/:deviceId", async (req, res) => {
 // Register a new device
 router.post("/register", async (req, res) => {
 	try {
-		const { deviceId, name, description, type, category, specifications, capabilities, location } = req.body;
+		const { name, description, type, category, specifications, capabilities, location } = req.body;
 
-		if (!deviceId || !name || !type) {
+		if (!name || !type) {
 			return res.status(400).json({
 				success: false,
-				message: "Device ID, name, and type are required",
+				message: "Name and type are required",
 			});
 		}
 
-		// Check if device already exists
+		// Generate unique device ID
+		const deviceId = crypto.randomUUID();
+
+		// Check if by rare chance ID exists
 		const existingDevice = await Device.findOne({ deviceId });
 		if (existingDevice) {
 			return res.status(409).json({

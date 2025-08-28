@@ -18,6 +18,7 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **Data Aggregation & Analytics**
 - **Real-time Alerts System**
 - **Device Command & Control**
+- **Device IDs tự động tạo bằng UUID khi đăng ký**
 
 ### Frontend (Next.js + TypeScript)
 
@@ -31,6 +32,7 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **Mobile-friendly UI**
 - **UI Designer với khả năng kéo thả component**
 - **Viewer page để hiển thị UI đã thiết kế**
+- **Liên kết button/slider với Device ID để gửi lệnh điều khiển**
 - **Hỗ trợ giao diện sáng/tối**
 - **Raw console page để theo dõi sự kiện và debug**
 - **Quick action links cho thêm thiết bị mới, xem analytics và cài đặt**

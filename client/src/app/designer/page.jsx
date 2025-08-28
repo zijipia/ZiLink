@@ -5,6 +5,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 const palette = [
 	{ type: "button", label: "Button" },
+	{ type: "slider", label: "Slider" },
 	{ type: "text", label: "Text" },
 	{ type: "input", label: "Input" },
 ];
@@ -43,7 +44,8 @@ export default function DesignerPage() {
 		const moveId = e.dataTransfer.getData("moveId");
 
 		if (type) {
-			setItems((prev) => [...prev, { id: Date.now().toString(), type, x, y }]);
+			const deviceId = prompt("Enter device ID to link (optional)") || "";
+			setItems((prev) => [...prev, { id: Date.now().toString(), type, x, y, deviceId }]);
 		} else if (moveId) {
 			const offsetX = parseInt(e.dataTransfer.getData("offsetX"), 10) || 0;
 			const offsetY = parseInt(e.dataTransfer.getData("offsetY"), 10) || 0;
@@ -62,6 +64,14 @@ export default function DesignerPage() {
 					<input
 						className='border p-1 rounded'
 						placeholder='Input'
+					/>
+				);
+			case "slider":
+				return (
+					<input
+						type='range'
+						min='0'
+						max='100'
 					/>
 				);
 			default:

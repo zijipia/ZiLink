@@ -293,14 +293,24 @@ class ApiService {
 	}
 
 	/**
-	 * Register new device
+	 * Register new device (ID auto-generated on server)
 	 * @param {Partial<Device>} deviceData
-	 * @returns {Promise<Device>}
+	 * @returns {Promise<{device: Device}>}
 	 */
 	async registerDevice(deviceData) {
 		const response = await this.api.post("/api/devices/register", deviceData);
 		toast.success("Device registered successfully!");
 		return response.data.data;
+	}
+
+	/**
+	 * Send command to device
+	 * @param {string} deviceId
+	 * @param {string} command
+	 */
+	async sendCommand(deviceId, command) {
+		await this.api.post(`/api/devices/${deviceId}/command`, { command });
+		toast.success("Command sent");
 	}
 
 	/**
