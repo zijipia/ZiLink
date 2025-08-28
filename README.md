@@ -33,6 +33,7 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **Viewer page để hiển thị UI đã thiết kế**
 - **Hỗ trợ giao diện sáng/tối**
 - **Raw console page để theo dõi sự kiện và debug**
+- **Quick action links cho thêm thiết bị mới, xem analytics và cài đặt**
 
 ### IoT Device Support
 
