@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const connectDB = async () => {
 	try {
@@ -39,4 +39,4 @@ process.on("SIGINT", async () => {
 	console.log("🔒 MongoDB connection closed through app termination");
 });
 
-module.exports = connectDB;
+export default connectDB;

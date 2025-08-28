@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const deviceDataSchema = new mongoose.Schema(
 	{
@@ -327,4 +327,4 @@ deviceDataSchema.statics.findUnacknowledgedAlerts = function (severity = null) {
 
 const DeviceData = mongoose.model("DeviceData", deviceDataSchema);
 
-module.exports = DeviceData;
+export default DeviceData;

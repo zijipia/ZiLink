@@ -1,10 +1,10 @@
-const express = require("express");
-const passport = require("../config/passport");
-const Device = require("../models/Device");
-const DeviceData = require("../models/DeviceData");
-const { generateDeviceToken, verifyToken } = require("../utils/jwt");
-const { wsManager } = require("../services/websocket");
-const crypto = require("crypto");
+import express from "express";
+import passport from "../config/passport.js";
+import Device from "../models/Device.js";
+import DeviceData from "../models/DeviceData.js";
+import { generateDeviceToken, verifyToken } from "../utils/jwt.js";
+import { wsManager } from "../services/websocket.js";
+import crypto from "node:crypto";
 
 const router = express.Router();
 
@@ -750,4 +750,4 @@ router.post("/alerts/:alertId/acknowledge", async (req, res) => {
 	}
 });
 
-module.exports = router;
+export default router;

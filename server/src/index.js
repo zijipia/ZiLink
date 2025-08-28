@@ -1,19 +1,21 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const rateLimit = require("express-rate-limit");
-const { spawn } = require("child_process");
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import rateLimit from "express-rate-limit";
+import fs from "node:fs";
+import { spawn } from "node:child_process";
+import { bin, install } from "cloudflared";
 
-const connectDB = require("./config/database");
-const authRoutes = require("./routes/auth");
-const deviceRoutes = require("./routes/device");
-const userRoutes = require("./routes/user");
-const { initWebSocketServer } = require("./services/websocket");
-const { initMQTTClient } = require("./services/mqtt");
-const { errorHandler } = require("./middleware/errorHandler");
-const { notFound } = require("./middleware/notFound");
+import connectDB from "./config/database.js";
+import authRoutes from "./routes/auth.js";
+import deviceRoutes from "./routes/device.js";
+import userRoutes from "./routes/user.js";
+import { initWebSocketServer } from "./services/websocket.js";
+import { initMQTTClient } from "./services/mqtt.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+import { notFound } from "./middleware/notFound.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -78,43 +80,48 @@ const server = app.listen(PORT, () => {
 });
 
 // Initialize WebSocket server
-const wsServer = initWebSocketServer(server);
+initWebSocketServer(server);
 console.log(`🔌 WebSocket server initialized on port ${PORT}`);
 
 // Initialize MQTT client
 initMQTTClient();
 console.log("📡 MQTT client initialized");
 
-// Graceful shutdown
-process.on("SIGTERM", () => {
-	console.log("👋 SIGTERM received, shutting down gracefully");
-	server.close(() => {
-		console.log("💤 Process terminated");
-	});
-});
-
-process.on("SIGINT", () => {
-	console.log("👋 SIGINT received, shutting down gracefully");
-	server.close(() => {
-		console.log("💤 Process terminated");
-	});
-});
+// Ensure cloudflared binary is installed
+if (!fs.existsSync(bin)) {
+	await install(bin);
+}
 
 // Start Cloudflare tunnel if token is provided
 let cf = null;
 if (process.env.cloudflaredtoken) {
-	cf = spawn("cloudflared", ["tunnel", "run", "--token", process.env.cloudflaredtoken], { stdio: "inherit" });
+	cf = spawn(bin, ["tunnel", "run", "--token", process.env.cloudflaredtoken], {
+		stdio: "inherit",
+	});
 } else {
 	console.log("⚠️  No cloudflared token provided, skipping tunnel setup");
 }
 
 const shutdown = () => {
 	try {
-		cf.kill();
+		cf?.kill();
 	} catch {}
 };
 
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+process.on("SIGINT", () => {
+	console.log("👋 SIGINT received, shutting down gracefully");
+	server.close(() => {
+		console.log("💤 Process terminated");
+	});
+	shutdown();
+});
 
-module.exports = app;
+process.on("SIGTERM", () => {
+	console.log("👋 SIGTERM received, shutting down gracefully");
+	server.close(() => {
+		console.log("💤 Process terminated");
+	});
+	shutdown();
+});
+
+export default app;

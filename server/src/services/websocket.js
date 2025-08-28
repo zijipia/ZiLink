@@ -1,6 +1,6 @@
-const WebSocket = require("ws");
-const jwt = require("jsonwebtoken");
-const { v4: uuidv4 } = require("uuid");
+import WebSocket from "ws";
+import jwt from "jsonwebtoken";
+import { v4 as uuidv4 } from "uuid";
 
 class WebSocketManager {
 	constructor() {
@@ -312,13 +312,8 @@ class WebSocketManager {
 	}
 }
 
-const wsManager = new WebSocketManager();
+export const wsManager = new WebSocketManager();
 
-const initWebSocketServer = (server) => {
+export const initWebSocketServer = (server) => {
 	return wsManager.initWebSocketServer(server);
-};
-
-module.exports = {
-	initWebSocketServer,
-	wsManager,
 };

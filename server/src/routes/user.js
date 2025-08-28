@@ -1,7 +1,7 @@
-const express = require("express");
-const passport = require("../config/passport");
-const User = require("../models/User");
-const Device = require("../models/Device");
+import express from "express";
+import passport from "../config/passport.js";
+import User from "../models/User.js";
+import Device from "../models/Device.js";
 
 const router = express.Router();
 
@@ -168,4 +168,4 @@ router.delete("/account", async (req, res) => {
 	}
 });
 
-module.exports = router;
+export default router;
