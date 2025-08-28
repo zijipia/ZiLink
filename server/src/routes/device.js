@@ -8,6 +8,8 @@ const crypto = require("crypto");
 
 const router = express.Router();
 
+const DEVICE_TYPES = ["sensor", "actuator", "gateway", "controller", "display", "camera", "speaker", "other"];
+
 // Device token authentication middleware
 const authenticateDevice = async (req, res, next) => {
 	const authHeader = req.headers["authorization"] || "";
@@ -240,6 +242,13 @@ router.post("/register", async (req, res) => {
 			});
 		}
 
+		if (!DEVICE_TYPES.includes(type)) {
+			return res.status(400).json({
+				success: false,
+				message: "Invalid device type",
+			});
+		}
+
 		// Generate unique device ID
 		const deviceId = crypto.randomUUID();
 
@@ -337,6 +346,13 @@ router.put("/:deviceId", async (req, res) => {
 				updates[key] = req.body[key];
 			}
 		});
+
+		if (updates.type && !DEVICE_TYPES.includes(updates.type)) {
+			return res.status(400).json({
+				success: false,
+				message: "Invalid device type",
+			});
+		}
 
 		Object.assign(device, updates);
 		await device.save();

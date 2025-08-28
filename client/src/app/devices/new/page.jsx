@@ -11,6 +11,7 @@ import apiService from "@/lib/api";
 export default function NewDevicePage() {
 	const [name, setName] = useState("");
 	const [type, setType] = useState("");
+	const deviceTypes = ["sensor", "actuator", "gateway", "controller", "display", "camera", "speaker", "other"];
 	const router = useRouter();
 
 	/**
@@ -57,13 +58,21 @@ export default function NewDevicePage() {
 						htmlFor='type'>
 						Type
 					</label>
-					<input
+					<select
 						id='type'
-						type='text'
+						required
 						value={type}
 						onChange={(e) => setType(e.target.value)}
-						className='w-full px-3 py-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-					/>
+						className='w-full px-3 py-2 border rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100'>
+						<option value=''>Select type</option>
+						{deviceTypes.map((t) => (
+							<option
+								key={t}
+								value={t}>
+								{t}
+							</option>
+						))}
+					</select>
 				</div>
 				<button
 					type='submit'
