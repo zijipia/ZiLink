@@ -7,7 +7,7 @@ import rateLimit from "express-rate-limit";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import { bin, install } from "cloudflared";
-
+import mongoose from "mongoose";
 import connectDB from "./config/database.js";
 import authRoutes from "./routes/auth.js";
 import deviceRoutes from "./routes/device.js";
@@ -102,26 +102,30 @@ if (process.env.cloudflaredtoken) {
 	console.log("⚠️  No cloudflared token provided, skipping tunnel setup");
 }
 
-const shutdown = () => {
+const shutdown = async () => {
 	try {
 		cf?.kill();
 	} catch {}
+
+	try {
+		await mongoose.connection.close();
+		console.log("🔒 MongoDB connection closed through app termination");
+	} catch (err) {
+		console.error("❌ Error closing MongoDB connection:", err);
+	}
+
+	server.close(() => {
+		console.log("💤 Process terminated");
+		process.exit(0);
+	});
 };
 
-process.on("SIGINT", () => {
-	console.log("👋 SIGINT received, shutting down gracefully");
-	server.close(() => {
-		console.log("💤 Process terminated");
+["SIGINT", "SIGTERM"].forEach((signal) => {
+	process.once(signal, () => {
+		console.log(`👋 ${signal} received, shutting down gracefully`);
+		shutdown();
 	});
-	shutdown();
-});
 
-process.on("SIGTERM", () => {
-	console.log("👋 SIGTERM received, shutting down gracefully");
-	server.close(() => {
-		console.log("💤 Process terminated");
-	});
-	shutdown();
 });
 
 export default app;
