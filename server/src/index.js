@@ -37,38 +37,38 @@ app.use(limiter);
 // CORS configuration
 // Allow multiple origins via env (comma-separated) and default local dev
 const rawAllowed = [
-  process.env.CLIENT_URLS,
-  process.env.CLIENT_URL,
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "https://ziji.world",
+	process.env.CLIENT_URLS,
+	process.env.CLIENT_URL,
+	"http://localhost:3000",
+	"http://127.0.0.1:3000",
+	"https://ziji.world",
 ].filter(Boolean);
 
 const allowedOrigins = rawAllowed
-  .flatMap((v) => v.split(","))
-  .map((v) => v.trim())
-  .filter((v) => v.length > 0);
+	.flatMap((v) => v.split(","))
+	.map((v) => v.trim())
+	.filter((v) => v.length > 0);
 
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow non-browser or same-origin requests (no Origin header)
-    if (!origin) return callback(null, true);
+	origin: (origin, callback) => {
+		// Allow non-browser or same-origin requests (no Origin header)
+		if (!origin) return callback(null, true);
 
-    // Exact match against allowed origins
-    if (allowedOrigins.includes(origin)) return callback(null, true);
+		// Exact match against allowed origins
+		if (allowedOrigins.includes(origin)) return callback(null, true);
 
-    // Optionally allow subdomains of ziji.world
-    try {
-      const url = new URL(origin);
-      if (url.hostname.endsWith(".ziji.world")) return callback(null, true);
-    } catch (_) {}
+		// Optionally allow subdomains of ziji.world
+		try {
+			const url = new URL(origin);
+			if (url.hostname.endsWith(".ziji.world")) return callback(null, true);
+		} catch (_) {}
 
-    return callback(new Error(`Not allowed by CORS: ${origin}`));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 204,
+		return callback(new Error(`Not allowed by CORS: ${origin}`));
+	},
+	credentials: true,
+	methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+	allowedHeaders: ["Content-Type", "Authorization"],
+	optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));

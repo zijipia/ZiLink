@@ -56,7 +56,7 @@ function OAuthCallbackContent() {
 
 			// Redirect to login after a delay
 			setTimeout(() => {
-				router.push("/login?error=oauth_failed");
+				router.push("/auth/login?error=oauth_failed");
 			}, 3000);
 		}
 	}, [searchParams, router]);
