@@ -30,6 +30,8 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **Real-time Notifications**
 - **Mobile-friendly UI**
 - **UI Designer với khả năng kéo thả component**
+- **Viewer page để hiển thị UI đã thiết kế**
+- **Hỗ trợ giao diện sáng/tối**
 
 ### IoT Device Support
 
@@ -40,7 +42,7 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **Real-time data streaming**
 - **Command & control capabilities**
 - **Alert & notification system**
-- **Arduino library for ESP32 với xác thực token**
+- **Arduino library for ESP32 với xác thực token và kết nối HTTP/WebSocket/MQTT**
 
 ## 📋 Yêu Cầu Hệ Thống
 

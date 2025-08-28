@@ -314,6 +314,11 @@ const DashboardPage = () => {
 								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
 								🛠️ UI Designer
 							</Link>
+							<Link
+								href='/viewer'
+								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
+								👁️ Viewer
+							</Link>
 						</div>
 					</div>
 
