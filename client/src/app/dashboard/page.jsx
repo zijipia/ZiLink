@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import apiService from "@/lib/api";
 import websocketService from "@/lib/websocket";
 import { toast } from "react-hot-toast";
@@ -308,6 +309,11 @@ const DashboardPage = () => {
 							<button className='w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
 								⚙️ Settings
 							</button>
+							<Link
+								href='/designer'
+								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
+								🛠️ UI Designer
+							</Link>
 						</div>
 					</div>
 
