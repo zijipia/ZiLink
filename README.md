@@ -3,13 +3,8 @@
 ZiLink là một platform quản lý thiết bị IoT toàn diện được xây dựng với Node.js, Express, WebSocket, Next.js, và MongoDB. Platform
 hỗ trợ real-time data monitoring, device management, và OAuth authentication.
 
-> [!NOTE] Đọc kỹ tài liệu cài đặt trước khi bắt đầu làm việc với ZiLink.
-
-> [!IMPORTANT] Cần cài đặt Node.js 18+ và cấu hình đúng file `.env` để hệ thống chạy ổn định.
-
-> [!WARNING] Không commit các thông tin nhạy cảm như Device Token hoặc file `.env` lên repository công khai.
-
-![ZiLink Architecture](docs/architecture-diagram.png)
+![ZiLink Architecture](![thumnail](https://github.com/user-attachments/assets/0ed2c124-0a40-46f5-b17d-477c22a66d7a)
+)
 
 ## 🚀 Tính Năng
 
