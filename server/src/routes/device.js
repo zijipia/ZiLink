@@ -22,14 +22,17 @@ const authenticateDevice = async (req, res, next) => {
 	}
 	try {
 		const decoded = verifyToken(token);
-		if (!decoded.deviceId || decoded.deviceId !== req.params.deviceId) {
+		const tokenDeviceId = decoded.deviceId;
+		const paramDeviceId = req.params.deviceId;
+		if (!tokenDeviceId || (paramDeviceId && tokenDeviceId !== paramDeviceId)) {
 			return res.status(403).json({
 				success: false,
 				message: "Invalid device token",
 			});
 		}
-		// Attach user info for existing handlers
+		// Attach user and device info for handlers
 		req.user = { _id: decoded.userId };
+		req.deviceId = tokenDeviceId;
 		next();
 	} catch (error) {
 		return res.status(401).json({
@@ -40,11 +43,12 @@ const authenticateDevice = async (req, res, next) => {
 };
 
 // Routes accessible with DEVICE_TOKEN
-router.put("/:deviceId/status", authenticateDevice, async (req, res) => {
-	console.log(`📥 Status update from ${req.params.deviceId}:`, req.body);
+router.put(["/:deviceId/status", "/status"], authenticateDevice, async (req, res) => {
+	const deviceId = req.params.deviceId || req.deviceId;
+	console.log(`📥 Status update from ${deviceId}:`, req.body);
 	try {
 		const device = await Device.findOne({
-			deviceId: req.params.deviceId,
+			deviceId,
 			owner: req.user._id,
 		});
 
@@ -62,7 +66,7 @@ router.put("/:deviceId/status", authenticateDevice, async (req, res) => {
 		wsManager.broadcastToWebClients({
 			type: "device_status_update",
 			data: {
-				deviceId: req.params.deviceId,
+				deviceId,
 				status: device.status,
 				timestamp: new Date().toISOString(),
 			},
@@ -82,11 +86,12 @@ router.put("/:deviceId/status", authenticateDevice, async (req, res) => {
 	}
 });
 
-router.post("/:deviceId/data", authenticateDevice, async (req, res) => {
-	console.log(`📥 Data from ${req.params.deviceId}:`, req.body);
+router.post(["/:deviceId/data", "/data"], authenticateDevice, async (req, res) => {
+	const deviceId = req.params.deviceId || req.deviceId;
+	console.log(`📥 Data from ${deviceId}:`, req.body);
 	try {
 		const device = await Device.findOne({
-			deviceId: req.params.deviceId,
+			deviceId,
 			owner: req.user._id,
 		});
 
@@ -109,7 +114,7 @@ router.post("/:deviceId/data", authenticateDevice, async (req, res) => {
 		// Create device data entry
 		const deviceData = new DeviceData({
 			device: device._id,
-			deviceId: req.params.deviceId,
+			deviceId,
 			data: data || {},
 			sensors,
 			deviceStatus: deviceStatus || {},
@@ -136,7 +141,7 @@ router.post("/:deviceId/data", authenticateDevice, async (req, res) => {
 		wsManager.broadcastToWebClients({
 			type: "device_data",
 			data: {
-				deviceId: req.params.deviceId,
+				deviceId,
 				sensorData: sensors,
 				timestamp: deviceData.timestamp,
 			},

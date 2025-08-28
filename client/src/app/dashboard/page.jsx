@@ -306,6 +306,11 @@ const DashboardPage = () => {
 								+ Add New Device
 							</Link>
 							<Link
+								href='/devices'
+								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
+								📋 Manage Devices
+							</Link>
+							<Link
 								href='/analytics'
 								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
 								📊 View Analytics

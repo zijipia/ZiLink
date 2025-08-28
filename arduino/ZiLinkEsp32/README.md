@@ -13,16 +13,18 @@ void setup() {
   client.begin("your-ssid", "your-password");
 
   // HTTP example
-  client.setupHttp("https://api.zilink.io", "DEVICE_TOKEN");
-  client.sendHttp("/devices/data", "{\"temp\":25}");
+    client.setupHttp("https://api.zilink.io", "DEVICE_ID", "DEVICE_TOKEN");
+    client.sendStatus("{\"online\":true}");
+    client.sendData("{\"temp\":25}");
 
   // WebSocket example
-  client.setupWebSocket("ws.zilink.io", 80, "/ws", "DEVICE_TOKEN");
-  client.sendWebSocket("{\"hello\":true}");
+    client.setupWebSocket("ws.zilink.io", 80, "/ws", "DEVICE_ID", "DEVICE_TOKEN");
+    client.sendWebSocketData("{\"temp\":25}");
 
   // MQTT example
-  client.setupMqtt("mqtt.zilink.io", 1883, "DEVICE_TOKEN");
-  client.publishMqtt("zilink/topic", "{\"temp\":25}");
+    client.setupMqtt("mqtt.zilink.io", 1883, "DEVICE_ID", "DEVICE_TOKEN");
+    client.publishMqttStatus("{\"online\":true}");
+    client.publishMqttData("{\"temp\":25}");
 }
 
 void loop() {
@@ -30,5 +32,5 @@ void loop() {
 }
 ```
 
-Provide your device token to authenticate with the platform. The library handles WiFi connection and token-based HTTP, WebSocket,
-or MQTT communication.
+Provide your device ID and token to authenticate with the platform. The library handles WiFi connection and device-specific HTTP,
+WebSocket, or MQTT communication.

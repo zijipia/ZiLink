@@ -9,12 +9,13 @@ void ZiLinkEsp32::begin(const char *ssid, const char *password) {
         }
 }
 
-void ZiLinkEsp32::setupHttp(const char *baseUrl, const char *token) {
+void ZiLinkEsp32::setupHttp(const char *baseUrl, const char *deviceId, const char *token) {
         _baseUrl = baseUrl;
+        _deviceId = deviceId;
         _token = token;
 }
 
-bool ZiLinkEsp32::sendHttp(const char *endpoint, const String &payload) {
+bool ZiLinkEsp32::sendHttp(const String &endpoint, const String &payload) {
         if (WiFi.status() != WL_CONNECTED) {
                 return false;
         }
@@ -27,34 +28,58 @@ bool ZiLinkEsp32::sendHttp(const char *endpoint, const String &payload) {
         return httpCode > 0;
 }
 
-void ZiLinkEsp32::setupWebSocket(const char *host, uint16_t port, const char *path, const char *token) {
-        _token = token;
-        _ws.begin(host, port, path);
-        String header = "Authorization: Bearer " + _token;
-        _ws.setExtraHeaders(header.c_str());
-        _ws.onEvent([](WStype_t, uint8_t *, size_t) {});
+bool ZiLinkEsp32::sendStatus(const String &payload) {
+        return sendHttp("/devices/" + _deviceId + "/status", payload);
 }
 
-bool ZiLinkEsp32::sendWebSocket(const String &message) {
+bool ZiLinkEsp32::sendData(const String &payload) {
+        return sendHttp("/devices/" + _deviceId + "/data", payload);
+}
+
+void ZiLinkEsp32::setupWebSocket(const char *host, uint16_t port, const char *path, const char *deviceId, const char *token) {
+        _token = token;
+        _deviceId = deviceId;
+        _ws.begin(host, port, path);
+        _ws.onEvent([this](WStype_t type, uint8_t *, size_t) {
+                if (type == WStype_CONNECTED) {
+                        String authMsg =
+                            "{\"type\":\"auth\",\"data\":{\"token\":\"" + _token + "\",\"clientType\":\"device\"}}";
+                        _ws.sendTXT(authMsg);
+                }
+        });
+}
+
+bool ZiLinkEsp32::sendWebSocketData(const String &message) {
         if (_ws.isConnected()) {
-                _ws.sendTXT(message);
+                String msg = "{\"type\":\"device_data\",\"data\":{\"sensorData\":" + message + "}}";
+                _ws.sendTXT(msg);
                 return true;
         }
         return false;
 }
 
-void ZiLinkEsp32::setupMqtt(const char *broker, uint16_t port, const char *token) {
+void ZiLinkEsp32::setupMqtt(const char *broker, uint16_t port, const char *deviceId, const char *token) {
         _token = token;
+        _deviceId = deviceId;
         _mqtt.setServer(broker, port);
         while (!_mqtt.connected()) {
-                _mqtt.connect("zilink-client", _token.c_str(), "");
+                _mqtt.connect(deviceId, _token.c_str(), "");
                 delay(500);
         }
 }
 
-bool ZiLinkEsp32::publishMqtt(const char *topic, const String &payload) {
+bool ZiLinkEsp32::publishMqttData(const String &payload) {
         if (_mqtt.connected()) {
-                return _mqtt.publish(topic, payload.c_str());
+                String topic = "zilink/devices/" + _deviceId + "/data";
+                return _mqtt.publish(topic.c_str(), payload.c_str());
+        }
+        return false;
+}
+
+bool ZiLinkEsp32::publishMqttStatus(const String &payload) {
+        if (_mqtt.connected()) {
+                String topic = "zilink/devices/" + _deviceId + "/status";
+                return _mqtt.publish(topic.c_str(), payload.c_str());
         }
         return false;
 }

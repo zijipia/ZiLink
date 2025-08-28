@@ -13,22 +13,27 @@ public:
         void begin(const char *ssid, const char *password);
 
         // HTTP API
-        void setupHttp(const char *baseUrl, const char *token);
-        bool sendHttp(const char *endpoint, const String &payload);
+        void setupHttp(const char *baseUrl, const char *deviceId, const char *token);
+        bool sendStatus(const String &payload);
+        bool sendData(const String &payload);
 
         // WebSocket
-        void setupWebSocket(const char *host, uint16_t port, const char *path, const char *token);
-        bool sendWebSocket(const String &message);
+        void setupWebSocket(const char *host, uint16_t port, const char *path, const char *deviceId, const char *token);
+        bool sendWebSocketData(const String &message);
 
         // MQTT
-        void setupMqtt(const char *broker, uint16_t port, const char *token);
-        bool publishMqtt(const char *topic, const String &payload);
+        void setupMqtt(const char *broker, uint16_t port, const char *deviceId, const char *token);
+        bool publishMqttData(const String &payload);
+        bool publishMqttStatus(const String &payload);
 
         void loop();
 
 private:
+        bool sendHttp(const String &endpoint, const String &payload);
+
         String _baseUrl;
         String _token;
+        String _deviceId;
         WebSocketsClient _ws;
         WiFiClient _wifi;
         PubSubClient _mqtt;

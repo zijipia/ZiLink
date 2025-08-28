@@ -36,6 +36,7 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **Hỗ trợ giao diện sáng/tối**
 - **Raw console page để theo dõi sự kiện và debug**
 - **Quick action links cho thêm thiết bị mới, xem analytics và cài đặt**
+- **Trang quản lý thiết bị hiển thị Device ID**
 
 ### IoT Device Support
 
@@ -46,7 +47,7 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **Real-time data streaming**
 - **Command & control capabilities**
 - **Alert & notification system**
-- **Arduino library for ESP32 với xác thực token và kết nối HTTP/WebSocket/MQTT**
+- **Arduino library for ESP32 sử dụng Device ID và token để kết nối HTTP/WebSocket/MQTT**
 - **DEVICE_TOKEN authentication cho việc gửi dữ liệu và cập nhật trạng thái thiết bị**
 - **Ghi log payload thô của thiết bị để dễ debug**
 
