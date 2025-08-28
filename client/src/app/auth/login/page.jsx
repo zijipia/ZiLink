@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,8 +15,14 @@ const LoginPage = () => {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
-	const { login, isLoading: authLoading } = useAuth();
+	const { login, isLoading: authLoading, isAuthenticated } = useAuth();
+	const router = useRouter();
 
+	useEffect(() => {
+		if (!authLoading && isAuthenticated) {
+			router.replace("/dashboard");
+		}
+	}, [authLoading, isAuthenticated, router]);
 	/**
 	 * Handle email login form submission
 	 * @param {React.FormEvent} e
@@ -32,6 +38,7 @@ const LoginPage = () => {
 		try {
 			setIsLoading(true);
 			await login(email, password);
+			router.replace("/dashboard");
 		} catch (error) {
 			const errorMessage = error?.response?.data?.message || "Login failed";
 			console.error("Login error:", error);
@@ -52,14 +59,14 @@ const LoginPage = () => {
 
 	if (authLoading) {
 		return (
-			<div className='min-h-screen flex items-center justify-center bg-gray-50'>
+			<div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900'>
 				<div className='animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600'></div>
 			</div>
 		);
 	}
 
 	return (
-		<div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8'>
+		<div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8'>
 			<div className='max-w-md w-full space-y-8'>
 				<div>
 					<div className='flex justify-center'>
@@ -79,16 +86,16 @@ const LoginPage = () => {
 							</svg>
 						</div>
 					</div>
-					<h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>Sign in to ZiLink</h2>
-					<p className='mt-2 text-center text-sm text-gray-600'>Manage your IoT devices with ease</p>
+					<h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-gray-100'>Sign in to ZiLink</h2>
+					<p className='mt-2 text-center text-sm text-gray-600 dark:text-gray-400'>Manage your IoT devices with ease</p>
 				</div>
 
-				<div className='bg-white py-8 px-6 shadow-xl rounded-lg sm:px-10'>
+				<div className='bg-white dark:bg-gray-800 py-8 px-6 shadow-xl rounded-lg sm:px-10'>
 					{/* OAuth Login Buttons */}
 					<div className='space-y-3'>
 						<button
 							onClick={() => handleOAuthLogin("google")}
-							className='w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-200'>
+							className='w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'>
 							<svg
 								className='w-5 h-5 mr-3'
 								viewBox='0 0 24 24'>
@@ -114,7 +121,7 @@ const LoginPage = () => {
 
 						<button
 							onClick={() => handleOAuthLogin("github")}
-							className='w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-200'>
+							className='w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'>
 							<svg
 								className='w-5 h-5 mr-3'
 								fill='currentColor'
@@ -126,7 +133,7 @@ const LoginPage = () => {
 
 						<button
 							onClick={() => handleOAuthLogin("discord")}
-							className='w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-200'>
+							className='w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'>
 							<svg
 								className='w-5 h-5 mr-3'
 								fill='currentColor'
@@ -167,7 +174,7 @@ const LoginPage = () => {
 									required
 									value={email}
 									onChange={(e) => setEmail(e.target.value)}
-									className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
+									className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-300 dark:text-gray-100'
 									placeholder='Enter your email'
 								/>
 							</div>
@@ -188,7 +195,7 @@ const LoginPage = () => {
 									required
 									value={password}
 									onChange={(e) => setPassword(e.target.value)}
-									className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
+									className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-300 dark:text-gray-100'
 									placeholder='Enter your password'
 								/>
 							</div>
@@ -208,10 +215,10 @@ const LoginPage = () => {
 
 					<div className='mt-6'>
 						<div className='text-center'>
-							<span className='text-sm text-gray-600'>
+							<span className='text-sm text-gray-600 dark:text-gray-400'>
 								Don't have an account?{" "}
 								<Link
-									href='/register'
+									href='/auth/sign-up'
 									className='font-medium text-blue-600 hover:text-blue-500 transition duration-200'>
 									Sign up
 								</Link>
@@ -221,7 +228,7 @@ const LoginPage = () => {
 				</div>
 
 				<div className='text-center'>
-					<p className='text-xs text-gray-500'>
+					<p className='text-xs text-gray-500 dark:text-gray-400'>
 						By signing in, you agree to our{" "}
 						<Link
 							href='/terms'

@@ -134,7 +134,7 @@ export const AuthProvider = ({ children }) => {
 			await apiService.logout();
 			websocketService.disconnect();
 			setUser(null);
-			router.push("/login");
+			router.push("/auth/login");
 		} catch (error) {
 			console.error("Logout failed:", error);
 		} finally {

@@ -38,7 +38,7 @@ const DashboardPage = () => {
 
 	useEffect(() => {
 		if (!authLoading && !isAuthenticated) {
-			router.push("/login");
+			router.push("/auth/login");
 			return;
 		}
 
