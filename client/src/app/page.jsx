@@ -1,46 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
 
 export default function Home() {
-	const { isAuthenticated, isLoading } = useAuth();
-	const router = useRouter();
+	const { isAuthenticated } = useAuth();
 
-	useEffect(() => {
-		if (!isLoading) {
-			if (isAuthenticated) {
-				router.push("/dashboard");
-			} else {
-				router.push("/login");
-			}
-		}
-	}, [isAuthenticated, isLoading, router]);
-
-	// Show loading while checking auth status
 	return (
-		<div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100'>
-			<div className='text-center'>
-				<div className='w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4'>
-					<svg
-						className='w-10 h-10 text-white'
-						fill='none'
-						stroke='currentColor'
-						viewBox='0 0 24 24'
-						xmlns='http://www.w3.org/2000/svg'>
-						<path
-							strokeLinecap='round'
-							strokeLinejoin='round'
-							strokeWidth={2}
-							d='M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
-						/>
-					</svg>
+		<div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white'>
+			<div className='text-center space-y-6 px-4'>
+				<h1 className='text-5xl font-extrabold tracking-tight sm:text-6xl'>ZiLink IoT Platform</h1>
+				<p className='text-xl max-w-2xl mx-auto'>
+					Unleash the power of your connected devices with a modern and intuitive dashboard.
+				</p>
+				<div className='flex justify-center space-x-4'>
+					{isAuthenticated ?
+						<Link
+							href='/dashboard'
+							className='px-8 py-3 bg-white text-indigo-600 font-semibold rounded-lg shadow-lg hover:bg-gray-100 transition-colors'>
+							Go to Dashboard
+						</Link>
+					:	<Link
+							href='/login'
+							className='px-8 py-3 bg-white text-indigo-600 font-semibold rounded-lg shadow-lg hover:bg-gray-100 transition-colors'>
+							Login
+						</Link>
+					}
 				</div>
-				<h1 className='text-4xl font-bold text-gray-900 mb-2'>ZiLink IoT Platform</h1>
-				<p className='text-gray-600 mb-8'>Connecting the Internet of Things</p>
-
-				{isLoading && <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>}
 			</div>
 		</div>
 	);
