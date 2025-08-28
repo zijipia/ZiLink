@@ -13,8 +13,8 @@
 		"start": "concurrently \"npm run start:server\" \"npm run start:client\"",
 		"start:server": "cd server && npm start",
 		"start:client": "cd client && npm start",
-		"check": "prettier --ignore-path .gitignore --check .",
-		"format": "prettier --ignore-path .gitignore --write ."
+		"check": "prettier --ignore-unknown --ignore-path .gitignore --check .",
+		"format": "prettier --ignore-unknown --ignore-path .gitignore --write ."
 	},
 	"keywords": [
 		"iot",
