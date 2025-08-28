@@ -4,6 +4,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
+const { spawn } = require("child_process");
 
 const connectDB = require("./config/database");
 const authRoutes = require("./routes/auth");
@@ -98,5 +99,22 @@ process.on("SIGINT", () => {
 		console.log("💤 Process terminated");
 	});
 });
+
+// Start Cloudflare tunnel if token is provided
+let cf = null;
+if (process.env.cloudflaredtoken) {
+	cf = spawn("cloudflared", ["tunnel", "run", "--token", process.env.cloudflaredtoken], { stdio: "inherit" });
+} else {
+	console.log("⚠️  No cloudflared token provided, skipping tunnel setup");
+}
+
+const shutdown = () => {
+	try {
+		cf.kill();
+	} catch {}
+};
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
 
 module.exports = app;

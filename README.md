@@ -18,6 +18,7 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **Data Aggregation & Analytics**
 - **Real-time Alerts System**
 - **Device Command & Control**
+- **Device IDs tự động tạo bằng UUID khi đăng ký**
 
 ### Frontend (Next.js + TypeScript)
 
@@ -29,6 +30,13 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **OAuth Social Login**
 - **Real-time Notifications**
 - **Mobile-friendly UI**
+- **UI Designer với khả năng kéo thả component**
+- **Viewer page để hiển thị UI đã thiết kế**
+- **Liên kết button/slider với Device ID để gửi lệnh điều khiển**
+- **Hỗ trợ giao diện sáng/tối**
+- **Raw console page để theo dõi sự kiện và debug**
+- **Quick action links cho thêm thiết bị mới, xem analytics và cài đặt**
+- **Trang quản lý thiết bị hiển thị Device ID và Device Token**
 
 ### IoT Device Support
 
@@ -39,6 +47,9 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 - **Real-time data streaming**
 - **Command & control capabilities**
 - **Alert & notification system**
+- **Arduino library for ESP32 sử dụng Device ID và token để kết nối HTTP/WebSocket/MQTT**
+- **DEVICE_TOKEN authentication cho việc gửi dữ liệu và cập nhật trạng thái thiết bị**
+- **Ghi log payload thô của thiết bị để dễ debug**
 
 ## 📋 Yêu Cầu Hệ Thống
 
@@ -251,6 +262,8 @@ GET /api/auth/discord
 GET /api/devices
 Authorization: Bearer <token>
 ```
+
+Mỗi thiết bị trong kết quả sẽ bao gồm trường `deviceToken` để sử dụng khi thiết bị kết nối tới nền tảng.
 
 #### Register Device
 
