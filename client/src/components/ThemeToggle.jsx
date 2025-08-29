@@ -26,7 +26,7 @@ export default function ThemeToggle() {
 		<button
 			onClick={toggle}
 			aria-label='Toggle theme'
-			className='fixed top-2 right-2 p-2 rounded-full bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100 relative'>
+			className='p-2 rounded-full bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100 relative'>
 			<Sun className={`h-5 w-5 transition-all duration-500 ${dark ? "rotate-90 scale-0" : "rotate-0 scale-100"}`} />
 			<Moon
 				className={`absolute inset-0 m-auto h-5 w-5 transition-all duration-500 ${dark ? "rotate-0 scale-100" : "-rotate-90 scale-0"}`}

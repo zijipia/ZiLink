@@ -1,7 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
-import ThemeToggle from "@/components/ThemeToggle";
+import Header from "@/components/Header";
 import ToastProvider from "@/components/ui/toaster";
 
 const geistSans = Geist({
@@ -33,7 +33,7 @@ export default function RootLayout({ children }) {
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-screen bg-[var(--background)] text-[var(--foreground)] transition-colors`}>
 				<AuthProvider>
-					<ThemeToggle />
+					<Header />
 					{children}
 					<ToastProvider />
 				</AuthProvider>
