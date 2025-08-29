@@ -62,6 +62,10 @@ const userSchema = new mongoose.Schema(
 				default: "UTC",
 			},
 		},
+		layout: {
+			type: [mongoose.Schema.Types.Mixed],
+			default: [],
+		},
 		// Account status
 		isActive: {
 			type: Boolean,

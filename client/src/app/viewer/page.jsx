@@ -10,8 +10,26 @@ const renderItem = (item) => {
 				<button
 					className='px-3 py-1 bg-blue-600 text-white rounded'
 					onClick={() => item.deviceId && apiService.sendCommand(item.deviceId, "toggle")}>
-					Button
+					{item.label}
 				</button>
+			);
+		case "toggle":
+			return (
+				<label className='flex items-center space-x-2'>
+					<input
+						type='checkbox'
+						onChange={(e) => item.deviceId && apiService.sendCommand(item.deviceId, e.target.checked ? "1" : "0")}
+					/>
+					<span>{item.label}</span>
+				</label>
+			);
+		case "progress":
+			return (
+				<progress
+					value='50'
+					max='100'
+					className='w-24'
+				/>
 			);
 		case "slider":
 			return (
@@ -23,12 +41,12 @@ const renderItem = (item) => {
 				/>
 			);
 		case "text":
-			return <p className='text-gray-800 dark:text-gray-200'>Text</p>;
+			return <p className='text-gray-800 dark:text-gray-200'>{item.label}</p>;
 		case "input":
 			return (
 				<input
 					className='border p-1 rounded'
-					placeholder='Input'
+					placeholder={item.label}
 				/>
 			);
 		default:
@@ -40,10 +58,10 @@ export default function ViewerPage() {
 	const [items, setItems] = useState([]);
 
 	useEffect(() => {
-		const saved = localStorage.getItem("zilink-layout");
-		if (saved) {
-			setItems(JSON.parse(saved));
-		}
+		apiService
+			.getLayout()
+			.then((data) => setItems(data || []))
+			.catch(() => setItems([]));
 	}, []);
 
 	return (
