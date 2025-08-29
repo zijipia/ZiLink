@@ -28,6 +28,8 @@ public:
         // Component helpers
         void createButton(bool value, const char *id);
         void createSlider(int value, const char *id);
+        void createToggle(bool value, const char *id);
+        void createProgress(int value, const char *id);
 
         void loop();
 

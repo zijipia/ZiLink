@@ -101,6 +101,18 @@ void ZiLinkEsp32::createSlider(int value, const char *id) {
         sendComponentData(payload);
 }
 
+void ZiLinkEsp32::createToggle(bool value, const char *id) {
+        String payload =
+            "{\"type\":\"toggle\",\"id\":\"" + String(id) + "\",\"value\":" + (value ? "true" : "false") + "}";
+        sendComponentData(payload);
+}
+
+void ZiLinkEsp32::createProgress(int value, const char *id) {
+        String payload =
+            "{\"type\":\"progress\",\"id\":\"" + String(id) + "\",\"value\":" + String(value) + "}";
+        sendComponentData(payload);
+}
+
 void ZiLinkEsp32::loop() {
         _ws.loop();
         _mqtt.loop();
