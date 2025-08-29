@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ThemeToggle from "@/components/ThemeToggle";
 import apiService from "@/lib/api";
 
 const renderItem = (item) => {
@@ -48,8 +47,7 @@ export default function ViewerPage() {
 	}, []);
 
 	return (
-		<div className='min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative'>
-			<ThemeToggle />
+		<div className='min-h-screen relative bg-white text-gray-900 dark:bg-[#121212] dark:text-gray-100 transition-colors'>
 			<div className='relative h-screen'>
 				{items.map((item) => (
 					<div
