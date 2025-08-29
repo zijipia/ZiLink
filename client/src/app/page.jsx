@@ -6,9 +6,9 @@ import { ArrowRight, Zap, Shield, BarChart3, Smartphone, Globe, Users } from "lu
 
 export default function HomePage() {
 	return (
-		<div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900'>
+		<div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-[#121212] dark:via-[#121212] dark:to-[#121212]'>
 			{/* Navigation */}
-			<nav className='border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50 dark:bg-gray-900/80 dark:border-gray-700'>
+			<nav className='border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50 dark:bg-[#121212]/80 dark:border-gray-700'>
 				<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
 					<div className='flex justify-between items-center h-16'>
 						<div className='flex items-center space-x-2'>
@@ -70,7 +70,7 @@ export default function HomePage() {
 			</section>
 
 			{/* Features Grid */}
-			<section className='py-20 bg-white dark:bg-gray-900'>
+			<section className='py-20 bg-white dark:bg-[#121212]'>
 				<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
 					<div className='text-center mb-16'>
 						<h2 className='text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4'>Everything You Need for IoT Success</h2>
@@ -183,7 +183,7 @@ export default function HomePage() {
 			</section>
 
 			{/* Footer */}
-			<footer className='bg-gray-900 dark:bg-gray-950 text-white py-12'>
+			<footer className='bg-gray-900 dark:bg-[#121212] text-white py-12'>
 				<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
 					<div className='flex flex-col md:flex-row justify-between items-center'>
 						<div className='flex items-center space-x-2 mb-4 md:mb-0'>

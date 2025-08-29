@@ -31,7 +31,7 @@ export default function RootLayout({ children }) {
 			lang='en'
 			className='h-full'>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors`}>
+				className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-screen bg-white text-gray-900 dark:bg-[#121212] dark:text-gray-100 transition-colors`}>
 				<AuthProvider>
 					<Header />
 					{children}

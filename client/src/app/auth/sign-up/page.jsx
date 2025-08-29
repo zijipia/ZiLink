@@ -66,14 +66,14 @@ const SignUpPage = () => {
 
 	if (authLoading) {
 		return (
-			<div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900'>
+			<div className='min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#121212]'>
 				<div className='animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600'></div>
 			</div>
 		);
 	}
 
 	return (
-		<div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8'>
+		<div className='min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-[#121212] dark:to-[#121212] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8'>
 			<div className='max-w-md w-full space-y-8'>
 				<div>
 					<div className='flex justify-center'>
