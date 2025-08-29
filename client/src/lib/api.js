@@ -453,6 +453,24 @@ class ApiService {
 	}
 
 	/**
+	 * Get saved UI layout
+	 * @returns {Promise<Array<Object>>}
+	 */
+	async getLayout() {
+		const response = await this.api.get("/api/users/layout");
+		return response.data.data;
+	}
+
+	/**
+	 * Save UI layout
+	 * @param {Array<Object>} layout
+	 * @returns {Promise<void>}
+	 */
+	async saveLayout(layout) {
+		await this.api.put("/api/users/layout", layout);
+	}
+
+	/**
 	 * Delete account
 	 * @param {string} [confirmPassword]
 	 * @returns {Promise<void>}

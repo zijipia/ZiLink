@@ -122,6 +122,31 @@ router.get("/dashboard", async (req, res) => {
 	}
 });
 
+// User layout routes
+router.get("/layout", (req, res) => {
+	res.json({
+		success: true,
+		data: req.user.layout || [],
+	});
+});
+
+router.put("/layout", async (req, res) => {
+	try {
+		req.user.layout = Array.isArray(req.body) ? req.body : [];
+		await req.user.save();
+		res.json({
+			success: true,
+			data: req.user.layout,
+		});
+	} catch (error) {
+		console.error("Update layout error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
+});
+
 // Delete user account
 router.delete("/account", async (req, res) => {
 	try {
