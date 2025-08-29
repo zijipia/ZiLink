@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import "@/styles/globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/components/theme-provider";
 import Header from "@/components/Header";
 import ToastProvider from "@/components/ui/toaster";
 
@@ -32,11 +33,17 @@ export default function RootLayout({ children }) {
 			className='h-full'
 			suppressHydrationWarning>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-screen bg-white text-gray-900 dark:bg-[#121212] dark:text-gray-100 transition-colors`}>
+				className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-screen text-gray-900 dark:text-gray-100 transition-colors`}>
 				<AuthProvider>
-					<Header />
-					{children}
-					<ToastProvider />
+					<ThemeProvider
+						attribute='class'
+						defaultTheme='system'
+						enableSystem
+						disableTransitionOnChange>
+						<Header />
+						{children}
+						<ToastProvider />
+					</ThemeProvider>
 				</AuthProvider>
 			</body>
 		</html>

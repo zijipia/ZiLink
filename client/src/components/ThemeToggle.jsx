@@ -2,37 +2,33 @@
 
 import { useEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 
 /**
  * Theme toggle button that switches between light and dark modes.
- * Applies the chosen theme to both the `<html>` and `<body>` elements
- * and persists the user's preference in local storage.
+ * Applies the chosen theme using the `next-themes` library.
  */
 export default function ThemeToggle() {
-	const [dark, setDark] = useState(false);
+	const { theme, setTheme } = useTheme();
+	const [mounted, setMounted] = useState(false);
 
-	const applyTheme = (isDark) => {
-		setDark(isDark);
-		const method = isDark ? "add" : "remove";
-		document.documentElement.classList[method]("dark");
-		document.body.classList[method]("dark");
-		localStorage.setItem("theme", isDark ? "dark" : "light");
-	};
-
+	// Ensure the component is mounted before rendering
 	useEffect(() => {
-		const stored = localStorage.getItem("theme");
-		const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-		applyTheme(stored ? stored === "dark" : prefersDark);
+		setMounted(true);
 	}, []);
+
+	if (!mounted) return null; // Avoid rendering mismatched HTML
 
 	return (
 		<button
-			onClick={() => applyTheme(!dark)}
+			onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
 			aria-label='Toggle theme'
-			className='p-2 rounded-full bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100 relative'>
-			<Sun className={`h-5 w-5 transition-all duration-500 ${dark ? "rotate-90 scale-0" : "rotate-0 scale-100"}`} />
+			className='p-2 rounded-full relative'>
+			<Sun
+				className={`h-5 w-5 transition-all text-black duration-500 ${theme === "dark" ? "rotate-90 scale-0" : "rotate-0 scale-100"}`}
+			/>
 			<Moon
-				className={`absolute inset-0 m-auto h-5 w-5 transition-all duration-500 ${dark ? "rotate-0 scale-100" : "-rotate-90 scale-0"}`}
+				className={`absolute inset-0 m-auto h-5 w-5 text-white transition-all duration-500 ${theme === "dark" ? "rotate-0 scale-100" : "-rotate-90 scale-0"}`}
 			/>
 		</button>
 	);

@@ -10,7 +10,7 @@ export default function Header() {
 	const { user, isAuthenticated } = useAuth();
 
 	return (
-		<nav className='border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50 dark:bg-[#121212]/80 dark:border-gray-700'>
+		<nav className='border-b backdrop-blur-sm sticky top-0 z-50 dark:border-gray-700'>
 			<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
 				<div className='flex justify-between items-center h-16'>
 					<Link
@@ -38,7 +38,7 @@ export default function Header() {
 								<Link href='/auth/login'>
 									<Button variant='ghost'>Sign In</Button>
 								</Link>
-								<Link href='/auth/sign-up'>
+								<Link href='/auth/register'>
 									<Button className='bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'>
 										Get Started
 									</Button>
