@@ -29,7 +29,8 @@ export default function RootLayout({ children }) {
 	return (
 		<html
 			lang='en'
-			className='h-full'>
+			className='h-full'
+			suppressHydrationWarning>
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-screen bg-white text-gray-900 dark:bg-[#121212] dark:text-gray-100 transition-colors`}>
 				<AuthProvider>
