@@ -47,7 +47,7 @@ export default function ViewerPage() {
 	}, []);
 
 	return (
-		<div className='min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative'>
+		<div className='min-h-screen relative bg-[var(--background)] text-[var(--foreground)]'>
 			<div className='relative h-screen'>
 				{items.map((item) => (
 					<div

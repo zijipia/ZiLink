@@ -79,7 +79,7 @@ export default function DesignerPage() {
 	};
 
 	return (
-		<div className='min-h-screen flex bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100'>
+		<div className='min-h-screen flex bg-[var(--background)] text-[var(--foreground)]'>
 			<div className='w-1/4 border-r p-4 space-y-2 bg-gray-50 dark:bg-gray-800'>
 				<h2 className='font-bold mb-4'>Components</h2>
 				{palette.map((p) => (

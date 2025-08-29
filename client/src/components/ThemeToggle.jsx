@@ -11,12 +11,14 @@ export default function ThemeToggle() {
 		const isDark = stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
 		setDark(isDark);
 		document.documentElement.classList.toggle("dark", isDark);
+		document.body.classList.toggle("dark", isDark);
 	}, []);
 
 	const toggle = () => {
 		const next = !dark;
 		setDark(next);
 		document.documentElement.classList.toggle("dark", next);
+		document.body.classList.toggle("dark", next);
 		localStorage.setItem("theme", next ? "dark" : "light");
 	};
 

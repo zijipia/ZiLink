@@ -27,9 +27,11 @@ export const metadata = {
  */
 export default function RootLayout({ children }) {
 	return (
-		<html lang='en'>
+		<html
+			lang='en'
+			className='h-full'>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}>
+				className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-screen bg-[var(--background)] text-[var(--foreground)] transition-colors`}>
 				<AuthProvider>
 					<ThemeToggle />
 					{children}
