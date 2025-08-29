@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import apiService from "@/lib/api";
 
 const palette = [
 	{ type: "button", label: "Button" },
@@ -13,14 +14,16 @@ export default function DesignerPage() {
 	const [items, setItems] = useState([]);
 
 	useEffect(() => {
-		const saved = localStorage.getItem("zilink-layout");
-		if (saved) {
-			setItems(JSON.parse(saved));
-		}
+		apiService
+			.getLayout()
+			.then((data) => setItems(data || []))
+			.catch(() => setItems([]));
 	}, []);
 
 	useEffect(() => {
-		localStorage.setItem("zilink-layout", JSON.stringify(items));
+		if (items.length >= 0) {
+			apiService.saveLayout(items);
+		}
 	}, [items]);
 
 	const handlePaletteDrag = (type) => (e) => {
@@ -101,6 +104,10 @@ export default function DesignerPage() {
 						key={item.id}
 						draggable
 						onDragStart={handleItemDrag(item.id)}
+						onContextMenu={(e) => {
+							e.preventDefault();
+							alert(`ID: ${item.id}`);
+						}}
 						className='absolute'
 						style={{ top: item.y, left: item.x }}>
 						{renderItem(item)}

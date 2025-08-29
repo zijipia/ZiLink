@@ -2,13 +2,6 @@
 
 ZiLinkEsp32::ZiLinkEsp32() : _mqtt(_wifi) {}
 
-void ZiLinkEsp32::begin(const char *ssid, const char *password) {
-        WiFi.begin(ssid, password);
-        while (WiFi.status() != WL_CONNECTED) {
-                delay(500);
-        }
-}
-
 void ZiLinkEsp32::setupHttp(const char *baseUrl, const char *deviceId, const char *token) {
         _baseUrl = baseUrl;
         _deviceId = deviceId;
@@ -82,6 +75,30 @@ bool ZiLinkEsp32::publishMqttStatus(const String &payload) {
                 return _mqtt.publish(topic.c_str(), payload.c_str());
         }
         return false;
+}
+
+bool ZiLinkEsp32::sendComponentData(const String &payload) {
+        if (_ws.isConnected()) {
+                _ws.sendTXT(payload);
+                return true;
+        }
+        if (_mqtt.connected()) {
+                String topic = "zilink/devices/" + _deviceId + "/components";
+                return _mqtt.publish(topic.c_str(), payload.c_str());
+        }
+        return sendHttp("/devices/" + _deviceId + "/components", payload);
+}
+
+void ZiLinkEsp32::createButton(bool value, const char *id) {
+        String payload =
+            "{\"type\":\"button\",\"id\":\"" + String(id) + "\",\"value\":" + (value ? "true" : "false") + "}";
+        sendComponentData(payload);
+}
+
+void ZiLinkEsp32::createSlider(int value, const char *id) {
+        String payload =
+            "{\"type\":\"slider\",\"id\":\"" + String(id) + "\",\"value\":" + String(value) + "}";
+        sendComponentData(payload);
 }
 
 void ZiLinkEsp32::loop() {

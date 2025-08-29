@@ -40,10 +40,10 @@ export default function ViewerPage() {
 	const [items, setItems] = useState([]);
 
 	useEffect(() => {
-		const saved = localStorage.getItem("zilink-layout");
-		if (saved) {
-			setItems(JSON.parse(saved));
-		}
+		apiService
+			.getLayout()
+			.then((data) => setItems(data || []))
+			.catch(() => setItems([]));
 	}, []);
 
 	return (

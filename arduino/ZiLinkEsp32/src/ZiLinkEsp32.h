@@ -10,7 +10,6 @@
 class ZiLinkEsp32 {
 public:
         ZiLinkEsp32();
-        void begin(const char *ssid, const char *password);
 
         // HTTP API
         void setupHttp(const char *baseUrl, const char *deviceId, const char *token);
@@ -26,10 +25,15 @@ public:
         bool publishMqttData(const String &payload);
         bool publishMqttStatus(const String &payload);
 
+        // Component helpers
+        void createButton(bool value, const char *id);
+        void createSlider(int value, const char *id);
+
         void loop();
 
 private:
         bool sendHttp(const String &endpoint, const String &payload);
+        bool sendComponentData(const String &payload);
 
         String _baseUrl;
         String _token;
