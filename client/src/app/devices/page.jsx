@@ -33,7 +33,7 @@ export default function DevicesPage() {
 	}
 
 	return (
-		<div className='min-h-screen p-8 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100'>
+		<div className='min-h-screen p-8 bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-100'>
 			<h1 className='text-2xl font-bold mb-6'>My Devices</h1>
 			<table className='min-w-full bg-white dark:bg-gray-800 rounded-lg overflow-hidden'>
 				<thead>

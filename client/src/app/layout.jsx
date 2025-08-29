@@ -1,7 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import "@/styles/globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
-import ThemeToggle from "@/components/ThemeToggle";
+import { ThemeProvider } from "@/components/theme-provider";
+import Header from "@/components/Header";
 import ToastProvider from "@/components/ui/toaster";
 
 const geistSans = Geist({
@@ -27,13 +28,22 @@ export const metadata = {
  */
 export default function RootLayout({ children }) {
 	return (
-		<html lang='en'>
+		<html
+			lang='en'
+			className='h-full'
+			suppressHydrationWarning>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}>
+				className={`${geistSans.variable} ${geistMono.variable} antialiased h-full min-h-screen text-gray-900 dark:text-gray-100 transition-colors`}>
 				<AuthProvider>
-					<ThemeToggle />
-					{children}
-					<ToastProvider />
+					<ThemeProvider
+						attribute='class'
+						defaultTheme='system'
+						enableSystem
+						disableTransitionOnChange>
+						<Header />
+						{children}
+						<ToastProvider />
+					</ThemeProvider>
 				</AuthProvider>
 			</body>
 		</html>
