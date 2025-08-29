@@ -31,7 +31,7 @@ export default function ConsolePage() {
 	}, []);
 
 	return (
-		<div className='min-h-screen p-4 bg-[var(--background)] text-[var(--foreground)]'>
+		<div className='min-h-screen p-4 bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors'>
 			<h1 className='text-2xl font-bold mb-4'>Raw Console</h1>
 			<div className='bg-gray-100 dark:bg-gray-800 rounded p-4 h-[80vh] overflow-y-auto font-mono text-sm'>
 				{logs.map((log, idx) => (
