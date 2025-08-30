@@ -20,8 +20,8 @@ const startServer = () => server.start(0);
 const makeToken = (deviceId, userId = "user1") => jwt.sign({ deviceId, userId }, process.env.JWT_SECRET);
 
 test("POST /api/devices/:id/components returns 404 when device missing", async () => {
-        const httpServer = await startServer();
-        const port = httpServer.address().port;
+	const httpServer = await startServer();
+	const port = httpServer.address().port;
 
 	mock.method(Device, "findOne", async () => null);
 	mock.method(wsManager, "broadcastToWebClients", () => {});
@@ -40,13 +40,13 @@ test("POST /api/devices/:id/components returns 404 when device missing", async (
 	assert.equal(res.status, 404);
 	assert.equal(body.message, "Device not found");
 
-        mock.restoreAll();
-        await server.shutdown();
+	mock.restoreAll();
+	await server.shutdown();
 });
 
 test("POST /api/devices/:id/components saves component data", async () => {
-        const httpServer = await startServer();
-        const port = httpServer.address().port;
+	const httpServer = await startServer();
+	const port = httpServer.address().port;
 
 	const deviceId = "dev2";
 	const fakeDevice = {
@@ -81,13 +81,13 @@ test("POST /api/devices/:id/components saves component data", async () => {
 	assert.ok(c.updatedAt instanceof Date);
 	assert.equal(fakeDevice.saved, true);
 
-        mock.restoreAll();
-        await server.shutdown();
+	mock.restoreAll();
+	await server.shutdown();
 });
 
 test("POST /devices/:id/components saves component data", async () => {
-        const httpServer = await startServer();
-        const port = httpServer.address().port;
+	const httpServer = await startServer();
+	const port = httpServer.address().port;
 
 	const deviceId = "dev3";
 	const fakeDevice = {
@@ -122,13 +122,13 @@ test("POST /devices/:id/components saves component data", async () => {
 	assert.ok(c.updatedAt instanceof Date);
 	assert.equal(fakeDevice.saved, true);
 
-        mock.restoreAll();
-        await server.shutdown();
+	mock.restoreAll();
+	await server.shutdown();
 });
 
 test("POST /devices/:id/components works without token", async () => {
-        const httpServer = await startServer();
-        const port = httpServer.address().port;
+	const httpServer = await startServer();
+	const port = httpServer.address().port;
 
 	const deviceId = "dev4";
 	const fakeDevice = {
@@ -154,6 +154,6 @@ test("POST /devices/:id/components works without token", async () => {
 	assert.equal(fakeDevice.components.length, 1);
 	assert.equal(fakeDevice.saved, true);
 
-        mock.restoreAll();
-        await server.shutdown();
+	mock.restoreAll();
+	await server.shutdown();
 });
