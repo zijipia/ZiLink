@@ -170,6 +170,7 @@ router.post(["/:deviceId/components", "/components"], authenticateDevice, async 
 	if (!deviceId) {
 		deviceId = extractParams("/:deviceId/components", req.path).deviceId;
 	}
+
 	const ip = getRequestIp(req);
 	console.log(`📥 Component data from ${deviceId} (${ip}):`, req.body);
 	try {
