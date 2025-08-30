@@ -1,10 +1,12 @@
 import "dotenv/config";
+import "./utils/logger.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import fs from "node:fs";
+import path from "node:path";
 import { spawn } from "node:child_process";
 import { bin, install } from "cloudflared";
 import mongoose from "mongoose";
@@ -19,9 +21,12 @@ import { notFound } from "./middleware/notFound.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const isTest = process.env.NODE_ENV === "test";
 
 // Connect to MongoDB
-connectDB();
+if (!isTest) {
+	connectDB();
+}
 
 // Security middleware
 app.use(helmet());
@@ -75,9 +80,19 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 // Logging
-if (process.env.NODE_ENV === "development") {
-	app.use(morgan("dev"));
+morgan.token("client-ip", (req) => req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.ip);
+const logFormat = ":client-ip :method :url :status :res[content-length] - :response-time ms";
+
+const logsDir = path.resolve("logs");
+if (!fs.existsSync(logsDir)) {
+	fs.mkdirSync(logsDir, { recursive: true });
 }
+const accessLogStream = fs.createWriteStream(path.join(logsDir, "access.log"), {
+	flags: "a",
+});
+
+app.use(morgan(logFormat));
+app.use(morgan(logFormat, { stream: accessLogStream }));
 
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }));
@@ -96,65 +111,69 @@ app.get("/health", (req, res) => {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/devices", deviceRoutes);
+app.use("/devices", deviceRoutes);
 app.use("/api/users", userRoutes);
 
 // Error handling middleware
 app.use(notFound);
 app.use(errorHandler);
 
-// Start the server
-const server = app.listen(PORT, () => {
-	console.log(`🚀 ZiLink Server is running on port ${PORT}`);
-	console.log(`📍 Environment: ${process.env.NODE_ENV}`);
-	console.log(`🔗 Client URL: ${process.env.CLIENT_URL}`);
-});
-
-// Initialize WebSocket server
-initWebSocketServer(server);
-console.log(`🔌 WebSocket server initialized on port ${PORT}`);
-
-// Initialize MQTT client
-initMQTTClient();
-console.log("📡 MQTT client initialized");
-
-// Ensure cloudflared binary is installed
-if (!fs.existsSync(bin)) {
-	await install(bin);
-}
-
-// Start Cloudflare tunnel if token is provided
-let cf = null;
-if (process.env.cloudflaredtoken) {
-	cf = spawn(bin, ["tunnel", "run", "--token", process.env.cloudflaredtoken], {
-		stdio: "inherit",
+let server;
+if (!isTest) {
+	// Start the server
+	server = app.listen(PORT, () => {
+		console.log(`🚀 ZiLink Server is running on port ${PORT}`);
+		console.log(`📍 Environment: ${process.env.NODE_ENV}`);
+		console.log(`🔗 Client URL: ${process.env.CLIENT_URL}`);
 	});
-} else {
-	console.log("⚠️  No cloudflared token provided, skipping tunnel setup");
-}
 
-const shutdown = async () => {
-	try {
-		cf?.kill();
-	} catch {}
+	// Initialize WebSocket server
+	initWebSocketServer(server);
+	console.log(`🔌 WebSocket server initialized on port ${PORT}`);
 
-	try {
-		await mongoose.connection.close();
-		console.log("🔒 MongoDB connection closed through app termination");
-	} catch (err) {
-		console.error("❌ Error closing MongoDB connection:", err);
+	// Initialize MQTT client
+	initMQTTClient();
+	console.log("📡 MQTT client initialized");
+
+	// Ensure cloudflared binary is installed
+	if (!fs.existsSync(bin)) {
+		await install(bin);
 	}
 
-	server.close(() => {
-		console.log("💤 Process terminated");
-		process.exit(0);
-	});
-};
+	// Start Cloudflare tunnel if token is provided
+	let cf = null;
+	if (process.env.cloudflaredtoken) {
+		cf = spawn(bin, ["tunnel", "run", "--token", process.env.cloudflaredtoken], {
+			stdio: "inherit",
+		});
+	} else {
+		console.log("⚠️  No cloudflared token provided, skipping tunnel setup");
+	}
 
-["SIGINT", "SIGTERM"].forEach((signal) => {
-	process.once(signal, () => {
-		console.log(`👋 ${signal} received, shutting down gracefully`);
-		shutdown();
+	const shutdown = async () => {
+		try {
+			cf?.kill();
+		} catch {}
+
+		try {
+			await mongoose.connection.close();
+			console.log("🔒 MongoDB connection closed through app termination");
+		} catch (err) {
+			console.error("❌ Error closing MongoDB connection:", err);
+		}
+
+		server.close(() => {
+			console.log("💤 Process terminated");
+			process.exit(0);
+		});
+	};
+
+	["SIGINT", "SIGTERM"].forEach((signal) => {
+		process.once(signal, () => {
+			console.log(`👋 ${signal} received, shutting down gracefully`);
+			shutdown();
+		});
 	});
-});
+}
 
 export default app;
