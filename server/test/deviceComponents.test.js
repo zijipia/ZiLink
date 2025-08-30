@@ -87,3 +87,45 @@ test("POST /api/devices/:id/components saves component data", async () => {
 	mock.restoreAll();
 	server.close();
 });
+
+test("POST /devices/:id/components saves component data", async () => {
+	const server = await startServer();
+	const port = server.address().port;
+
+	const deviceId = "dev3";
+	const fakeDevice = {
+		deviceId,
+		owner: "user1",
+		components: [],
+		save: async function () {
+			this.saved = true;
+		},
+	};
+
+	mock.method(Device, "findOne", async () => fakeDevice);
+	mock.method(wsManager, "broadcastToWebClients", () => {});
+
+	const res = await fetch(`http://127.0.0.1:${port}/devices/${deviceId}/components`, {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${makeToken(deviceId)}`,
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({ type: "sensor", id: "temp", value: 42 }),
+	});
+	const body = await res.json();
+
+	assert.equal(res.status, 201);
+	assert.equal(body.success, true);
+	assert.equal(fakeDevice.components.length, 1);
+	const c = fakeDevice.components[0];
+	assert.equal(c.id, "temp");
+	assert.equal(c.type, "sensor");
+	assert.equal(c.value, 42);
+	assert.ok(c.updatedAt instanceof Date);
+	assert.equal(fakeDevice.saved, true);
+
+	mock.restoreAll();
+	server.close();
+});
+

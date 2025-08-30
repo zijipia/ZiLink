@@ -111,6 +111,7 @@ app.get("/health", (req, res) => {
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/devices", deviceRoutes);
+app.use("/devices", deviceRoutes);
 app.use("/api/users", userRoutes);
 
 // Error handling middleware

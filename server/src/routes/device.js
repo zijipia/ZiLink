@@ -5,6 +5,7 @@ import DeviceData from "../models/DeviceData.js";
 import { generateDeviceToken, verifyToken } from "../utils/jwt.js";
 import { wsManager } from "../services/websocket.js";
 import crypto from "node:crypto";
+import { extractParams } from "../utils/extractParams.js";
 
 const router = express.Router();
 
@@ -165,7 +166,11 @@ router.post(["/:deviceId/data", "/data"], authenticateDevice, async (req, res) =
 });
 
 router.post(["/:deviceId/components", "/components"], authenticateDevice, async (req, res) => {
-	const deviceId = req.params.deviceId || req.deviceId;
+	let deviceId = req.params.deviceId || req.deviceId;
+	if (!deviceId) {
+		deviceId = extractParams("/:deviceId/components", req.path).deviceId;
+	}
+
 	const ip = getRequestIp(req);
 	console.log(`📥 Component data from ${deviceId} (${ip}):`, req.body);
 	try {
