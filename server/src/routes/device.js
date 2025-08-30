@@ -8,6 +8,8 @@ import crypto from "node:crypto";
 
 const router = express.Router();
 
+const getRequestIp = (req) => req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.ip;
+
 const DEVICE_TYPES = ["sensor", "actuator", "gateway", "controller", "display", "camera", "speaker", "other"];
 
 // Device token authentication middleware
@@ -45,7 +47,8 @@ const authenticateDevice = async (req, res, next) => {
 // Routes accessible with DEVICE_TOKEN
 router.put(["/:deviceId/status", "/status"], authenticateDevice, async (req, res) => {
 	const deviceId = req.params.deviceId || req.deviceId;
-	console.log(`📥 Status update from ${deviceId}:`, req.body);
+	const ip = getRequestIp(req);
+	console.log(`📥 Status update from ${deviceId} (${ip}):`, req.body);
 	try {
 		const device = await Device.findOne({
 			deviceId,
@@ -88,7 +91,8 @@ router.put(["/:deviceId/status", "/status"], authenticateDevice, async (req, res
 
 router.post(["/:deviceId/data", "/data"], authenticateDevice, async (req, res) => {
 	const deviceId = req.params.deviceId || req.deviceId;
-	console.log(`📥 Data from ${deviceId}:`, req.body);
+	const ip = getRequestIp(req);
+	console.log(`📥 Data from ${deviceId} (${ip}):`, req.body);
 	try {
 		const device = await Device.findOne({
 			deviceId,
@@ -153,6 +157,66 @@ router.post(["/:deviceId/data", "/data"], authenticateDevice, async (req, res) =
 		});
 	} catch (error) {
 		console.error("Submit device data error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
+});
+
+router.post(["/:deviceId/components", "/components"], authenticateDevice, async (req, res) => {
+	const deviceId = req.params.deviceId || req.deviceId;
+	const ip = getRequestIp(req);
+	console.log(`📥 Component data from ${deviceId} (${ip}):`, req.body);
+	try {
+		const device = await Device.findOne({
+			deviceId,
+			owner: req.user._id,
+		});
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		const { type, id, value } = req.body;
+		if (!type || !id) {
+			return res.status(400).json({
+				success: false,
+				message: "Component type and id are required",
+			});
+		}
+
+		if (!device.components) {
+			device.components = [];
+		}
+		const existing = device.components.find((c) => c.id === id);
+		const component = { id, type, value, updatedAt: new Date() };
+
+		if (existing) {
+			existing.type = type;
+			existing.value = value;
+			existing.updatedAt = component.updatedAt;
+		} else {
+			device.components.push(component);
+		}
+
+		await device.save();
+
+		wsManager.broadcastToWebClients({
+			type: "device_component_update",
+			data: { deviceId, component: { id, type, value } },
+		});
+
+		res.status(201).json({
+			success: true,
+			message: "Component data saved successfully",
+			data: { id, type, value },
+		});
+	} catch (error) {
+		console.error("Submit component data error:", error);
 		res.status(500).json({
 			success: false,
 			message: "Internal server error",

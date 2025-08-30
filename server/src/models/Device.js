@@ -166,6 +166,24 @@ const deviceSchema = new mongoose.Schema(
 				},
 			},
 		},
+		// Device components
+		components: [
+			{
+				id: {
+					type: String,
+					required: true,
+				},
+				type: {
+					type: String,
+					required: true,
+				},
+				value: mongoose.Schema.Types.Mixed,
+				updatedAt: {
+					type: Date,
+					default: Date.now,
+				},
+			},
+		],
 		// Device status
 		status: {
 			isOnline: {
