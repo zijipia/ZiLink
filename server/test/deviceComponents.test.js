@@ -128,3 +128,4 @@ test("POST /devices/:id/components saves component data", async () => {
 	mock.restoreAll();
 	server.close();
 });
+
