@@ -129,3 +129,35 @@ test("POST /devices/:id/components saves component data", async () => {
 	server.close();
 });
 
+test("POST /devices/:id/components works without token", async () => {
+	const server = await startServer();
+	const port = server.address().port;
+
+	const deviceId = "dev4";
+	const fakeDevice = {
+		deviceId,
+		components: [],
+		save: async function () {
+			this.saved = true;
+		},
+	};
+
+	mock.method(Device, "findOne", async () => fakeDevice);
+	mock.method(wsManager, "broadcastToWebClients", () => {});
+
+	const res = await fetch(`http://127.0.0.1:${port}/devices/${deviceId}/components`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ type: "sensor", id: "temp", value: 42 }),
+	});
+	const body = await res.json();
+
+	assert.equal(res.status, 201);
+	assert.equal(body.success, true);
+	assert.equal(fakeDevice.components.length, 1);
+	assert.equal(fakeDevice.saved, true);
+
+	mock.restoreAll();
+	server.close();
+});
+

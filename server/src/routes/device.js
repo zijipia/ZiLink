@@ -45,6 +45,22 @@ const authenticateDevice = async (req, res, next) => {
 	}
 };
 
+// Optional device token middleware
+const maybeAuthenticateDevice = async (req, _res, next) => {
+	const authHeader = req.headers["authorization"] || "";
+	const token = authHeader.split(" ")[1];
+	if (token) {
+		try {
+			const decoded = verifyToken(token);
+			req.user = { _id: decoded.userId };
+			req.deviceId = decoded.deviceId;
+		} catch {
+			// Ignore invalid tokens and treat request as unauthenticated
+		}
+	}
+	next();
+};
+
 // Routes accessible with DEVICE_TOKEN
 router.put(["/:deviceId/status", "/status"], authenticateDevice, async (req, res) => {
 	const deviceId = req.params.deviceId || req.deviceId;
@@ -165,19 +181,21 @@ router.post(["/:deviceId/data", "/data"], authenticateDevice, async (req, res) =
 	}
 });
 
-router.post(["/:deviceId/components", "/components"], authenticateDevice, async (req, res) => {
+router.post(["/:deviceId/components", "/components"], maybeAuthenticateDevice, async (req, res) => {
+
 	let deviceId = req.params.deviceId || req.deviceId;
 	if (!deviceId) {
 		deviceId = extractParams("/:deviceId/components", req.path).deviceId;
 	}
-
 	const ip = getRequestIp(req);
 	console.log(`📥 Component data from ${deviceId} (${ip}):`, req.body);
 	try {
-		const device = await Device.findOne({
-			deviceId,
-			owner: req.user._id,
-		});
+		const query = { deviceId };
+		if (req.user?._id) {
+			query.owner = req.user._id;
+		}
+		const device = await Device.findOne(query);
+
 
 		if (!device) {
 			return res.status(404).json({
