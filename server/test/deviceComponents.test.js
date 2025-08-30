@@ -160,4 +160,3 @@ test("POST /devices/:id/components works without token", async () => {
 	mock.restoreAll();
 	server.close();
 });
-
