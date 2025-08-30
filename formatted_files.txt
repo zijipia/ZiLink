@@ -1,4 +1,1 @@
 formatted_files.txt
-server/src/index.js
-server/test/deviceComponents.test.js
-server/test/health.test.js
