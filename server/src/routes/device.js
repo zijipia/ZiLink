@@ -5,8 +5,11 @@ import DeviceData from "../models/DeviceData.js";
 import { generateDeviceToken, verifyToken } from "../utils/jwt.js";
 import { wsManager } from "../services/websocket.js";
 import crypto from "node:crypto";
+import { extractParams } from "../utils/extractParams.js";
 
 const router = express.Router();
+
+const getRequestIp = (req) => req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.ip;
 
 const DEVICE_TYPES = ["sensor", "actuator", "gateway", "controller", "display", "camera", "speaker", "other"];
 
@@ -42,10 +45,27 @@ const authenticateDevice = async (req, res, next) => {
 	}
 };
 
+// Optional device token middleware
+const maybeAuthenticateDevice = async (req, _res, next) => {
+	const authHeader = req.headers["authorization"] || "";
+	const token = authHeader.split(" ")[1];
+	if (token) {
+		try {
+			const decoded = verifyToken(token);
+			req.user = { _id: decoded.userId };
+			req.deviceId = decoded.deviceId;
+		} catch {
+			// Ignore invalid tokens and treat request as unauthenticated
+		}
+	}
+	next();
+};
+
 // Routes accessible with DEVICE_TOKEN
 router.put(["/:deviceId/status", "/status"], authenticateDevice, async (req, res) => {
 	const deviceId = req.params.deviceId || req.deviceId;
-	console.log(`📥 Status update from ${deviceId}:`, req.body);
+	const ip = getRequestIp(req);
+	console.log(`📥 Status update from ${deviceId} (${ip}):`, req.body);
 	try {
 		const device = await Device.findOne({
 			deviceId,
@@ -88,7 +108,8 @@ router.put(["/:deviceId/status", "/status"], authenticateDevice, async (req, res
 
 router.post(["/:deviceId/data", "/data"], authenticateDevice, async (req, res) => {
 	const deviceId = req.params.deviceId || req.deviceId;
-	console.log(`📥 Data from ${deviceId}:`, req.body);
+	const ip = getRequestIp(req);
+	console.log(`📥 Data from ${deviceId} (${ip}):`, req.body);
 	try {
 		const device = await Device.findOne({
 			deviceId,
@@ -153,6 +174,70 @@ router.post(["/:deviceId/data", "/data"], authenticateDevice, async (req, res) =
 		});
 	} catch (error) {
 		console.error("Submit device data error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
+});
+
+router.post(["/:deviceId/components", "/components"], maybeAuthenticateDevice, async (req, res) => {
+	let deviceId = req.params.deviceId || req.deviceId;
+	if (!deviceId) {
+		deviceId = extractParams("/:deviceId/components", req.path).deviceId;
+	}
+	const ip = getRequestIp(req);
+	console.log(`📥 Component data from ${deviceId} (${ip}):`, req.body);
+	try {
+		const query = { deviceId };
+		if (req.user?._id) {
+			query.owner = req.user._id;
+		}
+		const device = await Device.findOne(query);
+
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
+
+		const { type, id, value } = req.body;
+		if (!type || !id) {
+			return res.status(400).json({
+				success: false,
+				message: "Component type and id are required",
+			});
+		}
+
+		if (!device.components) {
+			device.components = [];
+		}
+		const existing = device.components.find((c) => c.id === id);
+		const component = { id, type, value, updatedAt: new Date() };
+
+		if (existing) {
+			existing.type = type;
+			existing.value = value;
+			existing.updatedAt = component.updatedAt;
+		} else {
+			device.components.push(component);
+		}
+
+		await device.save();
+
+		wsManager.broadcastToWebClients({
+			type: "device_component_update",
+			data: { deviceId, component: { id, type, value } },
+		});
+
+		res.status(201).json({
+			success: true,
+			message: "Component data saved successfully",
+			data: { id, type, value },
+		});
+	} catch (error) {
+		console.error("Submit component data error:", error);
 		res.status(500).json({
 			success: false,
 			message: "Internal server error",

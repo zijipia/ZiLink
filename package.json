@@ -14,7 +14,8 @@
 		"start:server": "cd server && npm start",
 		"start:client": "cd client && npm start",
 		"check": "prettier --ignore-path .gitignore --ignore-unknown --check .",
-		"format": "prettier --ignore-path .gitignore --ignore-unknown --write ."
+		"format": "prettier --ignore-path .gitignore --ignore-unknown --write .",
+		"test": "cd server && npm test"
 	},
 	"keywords": [
 		"iot",
