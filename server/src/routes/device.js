@@ -182,7 +182,6 @@ router.post(["/:deviceId/data", "/data"], authenticateDevice, async (req, res) =
 });
 
 router.post(["/:deviceId/components", "/components"], maybeAuthenticateDevice, async (req, res) => {
-
 	let deviceId = req.params.deviceId || req.deviceId;
 	if (!deviceId) {
 		deviceId = extractParams("/:deviceId/components", req.path).deviceId;
@@ -195,7 +194,6 @@ router.post(["/:deviceId/components", "/components"], maybeAuthenticateDevice, a
 			query.owner = req.user._id;
 		}
 		const device = await Device.findOne(query);
-
 
 		if (!device) {
 			return res.status(404).json({

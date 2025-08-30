@@ -15,7 +15,7 @@ import authRoutes from "./routes/auth.js";
 import deviceRoutes from "./routes/device.js";
 import userRoutes from "./routes/user.js";
 import { initWebSocketServer } from "./services/websocket.js";
-import { initMQTTClient } from "./services/mqtt.js";
+import { initMQTTServer, mqttServer } from "./services/mqttServer.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
 
@@ -131,9 +131,9 @@ if (!isTest) {
 	initWebSocketServer(server);
 	console.log(`🔌 WebSocket server initialized on port ${PORT}`);
 
-	// Initialize MQTT client
-	initMQTTClient();
-	console.log("📡 MQTT client initialized");
+	// Initialize MQTT server
+	initMQTTServer();
+	console.log("📡 MQTT server initialized");
 
 	// Ensure cloudflared binary is installed
 	if (!fs.existsSync(bin)) {
@@ -161,6 +161,11 @@ if (!isTest) {
 		} catch (err) {
 			console.error("❌ Error closing MongoDB connection:", err);
 		}
+
+		try {
+			mqttServer.close();
+			console.log("📡 MQTT server closed");
+		} catch {}
 
 		server.close(() => {
 			console.log("💤 Process terminated");

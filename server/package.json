@@ -11,6 +11,7 @@
 		"test": "node --test"
 	},
 	"dependencies": {
+		"aedes": "^0.51.3",
 		"express": "^4.18.2",
 		"cors": "^2.8.5",
 		"helmet": "^7.0.0",
@@ -26,7 +27,6 @@
 		"passport-jwt": "^4.0.1",
 		"express-session": "^1.17.3",
 		"ws": "^8.13.0",
-		"mqtt": "^5.0.5",
 		"uuid": "^9.0.0",
 		"joi": "^17.9.2",
 		"express-rate-limit": "^6.10.0",
