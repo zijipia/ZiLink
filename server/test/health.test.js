@@ -10,19 +10,16 @@ process.env.GITHUB_CLIENT_SECRET = "test";
 process.env.DISCORD_CLIENT_ID = "test";
 process.env.DISCORD_CLIENT_SECRET = "test";
 
-const { default: app } = await import("../src/index.js");
+const { default: server } = await import("../src/index.js");
 
-const startServer = () =>
-	new Promise((resolve) => {
-		const s = app.listen(0, () => resolve(s));
-	});
+const startServer = () => server.start(0);
 
 test("GET /health returns OK", async () => {
-	const server = await startServer();
-	const port = server.address().port;
-	const res = await fetch(`http://127.0.0.1:${port}/health`);
-	const body = await res.json();
-	assert.equal(res.status, 200);
-	assert.equal(body.status, "OK");
-	server.close();
+        const httpServer = await startServer();
+        const port = httpServer.address().port;
+        const res = await fetch(`http://127.0.0.1:${port}/health`);
+        const body = await res.json();
+        assert.equal(res.status, 200);
+        assert.equal(body.status, "OK");
+        await server.shutdown();
 });
