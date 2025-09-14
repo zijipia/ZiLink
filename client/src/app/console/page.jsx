@@ -68,53 +68,74 @@ const ConsolePage = () => {
 		{ id: "error", name: "Error", color: "red", icon: XCircle },
 	];
 
-// Sync logs with server and websocket
-useEffect(() => {
-    if (!authLoading && !isAuthenticated) return;
-    if (!isAuthenticated) return;
+	// Sync logs with server and websocket
+	useEffect(() => {
+		if (!authLoading && !isAuthenticated) return;
+		if (!isAuthenticated) return;
 
-    let detach = () => {};
+		let detach = () => {};
 
-    (async () => {
-        try {
-            const recent = await apiService.getRecentLogs(200, "all");
-            setLogs(
-                recent.map((l, idx) => ({
-                    id: `${l.timestamp}-${idx}`,
-                    timestamp: new Date(l.timestamp),
-                    level: l.level === "error" ? "error" : "info",
-                    message: l.message,
-                    source: l.source || "server",
-                })),
-            );
-        } catch (e) {
-            console.error("Load logs failed", e);
-        }
+		(async () => {
+			try {
+				const recent = await apiService.getRecentLogs(200, "all");
+				setLogs(
+					recent.map((l, idx) => ({
+						id: `${l.timestamp}-${idx}`,
+						timestamp: new Date(l.timestamp),
+						level: l.level === "error" ? "error" : "info",
+						message: l.message,
+						source: l.source || "server",
+					})),
+				);
+			} catch (e) {
+				console.error("Load logs failed", e);
+			}
 
-        const append = (entry) => setLogs((prev) => [...prev, entry].slice(-1000));
-        const onDeviceData = ({ deviceId, sensorData }) => {
-            const count = Array.isArray(sensorData) ? sensorData.length : 1;
-            append({ id: `${Date.now()}-data-${deviceId}`, timestamp: new Date(), level: "info", message: `Device ${deviceId} sent ${count} reading(s)`, source: "ws/device_data" });
-        };
-        const onDeviceOnline = ({ deviceId }) => append({ id: `${Date.now()}-online-${deviceId}`, timestamp: new Date(), level: "success", message: `Device ${deviceId} online`, source: "ws" });
-        const onDeviceOffline = ({ deviceId }) => append({ id: `${Date.now()}-offline-${deviceId}`, timestamp: new Date(), level: "warning", message: `Device ${deviceId} offline`, source: "ws" });
-        const onError = ({ error }) => append({ id: `${Date.now()}-err`, timestamp: new Date(), level: "error", message: error, source: "ws" });
+			const append = (entry) => setLogs((prev) => [...prev, entry].slice(-1000));
+			const onDeviceData = ({ deviceId, sensorData }) => {
+				const count = Array.isArray(sensorData) ? sensorData.length : 1;
+				append({
+					id: `${Date.now()}-data-${deviceId}`,
+					timestamp: new Date(),
+					level: "info",
+					message: `Device ${deviceId} sent ${count} reading(s)`,
+					source: "ws/device_data",
+				});
+			};
+			const onDeviceOnline = ({ deviceId }) =>
+				append({
+					id: `${Date.now()}-online-${deviceId}`,
+					timestamp: new Date(),
+					level: "success",
+					message: `Device ${deviceId} online`,
+					source: "ws",
+				});
+			const onDeviceOffline = ({ deviceId }) =>
+				append({
+					id: `${Date.now()}-offline-${deviceId}`,
+					timestamp: new Date(),
+					level: "warning",
+					message: `Device ${deviceId} offline`,
+					source: "ws",
+				});
+			const onError = ({ error }) =>
+				append({ id: `${Date.now()}-err`, timestamp: new Date(), level: "error", message: error, source: "ws" });
 
-        websocketService.on("device_data", onDeviceData);
-        websocketService.on("device_online", onDeviceOnline);
-        websocketService.on("device_offline", onDeviceOffline);
-        websocketService.on("error", onError);
+			websocketService.on("device_data", onDeviceData);
+			websocketService.on("device_online", onDeviceOnline);
+			websocketService.on("device_offline", onDeviceOffline);
+			websocketService.on("error", onError);
 
-        detach = () => {
-            websocketService.off("device_data", onDeviceData);
-            websocketService.off("device_online", onDeviceOnline);
-            websocketService.off("device_offline", onDeviceOffline);
-            websocketService.off("error", onError);
-        };
-    })();
+			detach = () => {
+				websocketService.off("device_data", onDeviceData);
+				websocketService.off("device_online", onDeviceOnline);
+				websocketService.off("device_offline", onDeviceOffline);
+				websocketService.off("error", onError);
+			};
+		})();
 
-    return () => detach();
-}, [isAuthenticated, authLoading]);
+		return () => detach();
+	}, [isAuthenticated, authLoading]);
 
 	useEffect(() => {
 		if (!authLoading && !isAuthenticated) {
@@ -149,11 +170,11 @@ useEffect(() => {
 		}
 	}, [logs, isAutoScroll]);
 
-// Stop appending when paused (handled in UI operations)
+	// Stop appending when paused (handled in UI operations)
 
-const loadConsoleData = async () => {
-    setIsLoading(false);
-};
+	const loadConsoleData = async () => {
+		setIsLoading(false);
+	};
 
 	const handleLogout = async () => {
 		try {

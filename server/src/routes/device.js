@@ -15,64 +15,64 @@ const DEVICE_TYPES = ["sensor", "actuator", "gateway", "controller", "display", 
 
 // Device token authentication middleware
 const authenticateDevice = async (req, res, next) => {
-    const authHeader = req.headers["authorization"] || "";
-    const token = authHeader.split(" ")[1];
-    if (!token) {
-        return res.status(401).json({
-            success: false,
-            message: "Authorization token required",
-        });
-    }
-    try {
-        const decoded = verifyToken(token);
-        const paramDeviceId = req.params.deviceId;
+	const authHeader = req.headers["authorization"] || "";
+	const token = authHeader.split(" ")[1];
+	if (!token) {
+		return res.status(401).json({
+			success: false,
+			message: "Authorization token required",
+		});
+	}
+	try {
+		const decoded = verifyToken(token);
+		const paramDeviceId = req.params.deviceId;
 
-        if (decoded.deviceId) {
-            // Device token path (backward compatible)
-            if (paramDeviceId && decoded.deviceId !== paramDeviceId) {
-                return res.status(403).json({ success: false, message: "Invalid device token" });
-            }
-            req.user = { _id: decoded.userId };
-            req.deviceId = decoded.deviceId;
-            return next();
-        }
+		if (decoded.deviceId) {
+			// Device token path (backward compatible)
+			if (paramDeviceId && decoded.deviceId !== paramDeviceId) {
+				return res.status(403).json({ success: false, message: "Invalid device token" });
+			}
+			req.user = { _id: decoded.userId };
+			req.deviceId = decoded.deviceId;
+			return next();
+		}
 
-        // User token path: require :deviceId in route and verify ownership
-        if (!paramDeviceId) {
-            return res.status(400).json({ success: false, message: "deviceId required in path when using user token" });
-        }
-        const device = await Device.findOne({ deviceId: paramDeviceId, owner: decoded.userId });
-        if (!device) {
-            return res.status(403).json({ success: false, message: "Device not found or not owned by user" });
-        }
-        req.user = { _id: decoded.userId };
-        req.deviceId = paramDeviceId;
-        return next();
-    } catch (error) {
-        return res.status(401).json({ success: false, message: "Invalid token" });
-    }
+		// User token path: require :deviceId in route and verify ownership
+		if (!paramDeviceId) {
+			return res.status(400).json({ success: false, message: "deviceId required in path when using user token" });
+		}
+		const device = await Device.findOne({ deviceId: paramDeviceId, owner: decoded.userId });
+		if (!device) {
+			return res.status(403).json({ success: false, message: "Device not found or not owned by user" });
+		}
+		req.user = { _id: decoded.userId };
+		req.deviceId = paramDeviceId;
+		return next();
+	} catch (error) {
+		return res.status(401).json({ success: false, message: "Invalid token" });
+	}
 };
 
 // Optional device token middleware
 const maybeAuthenticateDevice = async (req, _res, next) => {
-    const authHeader = req.headers["authorization"] || "";
-    const token = authHeader.split(" ")[1];
-    if (token) {
-        try {
-            const decoded = verifyToken(token);
-            req.user = { _id: decoded.userId };
-            if (decoded.deviceId) {
-                req.deviceId = decoded.deviceId;
-            } else if (req.params.deviceId) {
-                // If user token and path includes deviceId, verify ownership to set context
-                const owned = await Device.findOne({ deviceId: req.params.deviceId, owner: decoded.userId });
-                if (owned) req.deviceId = req.params.deviceId;
-            }
-        } catch {
-            // Ignore invalid tokens and treat request as unauthenticated
-        }
-    }
-    next();
+	const authHeader = req.headers["authorization"] || "";
+	const token = authHeader.split(" ")[1];
+	if (token) {
+		try {
+			const decoded = verifyToken(token);
+			req.user = { _id: decoded.userId };
+			if (decoded.deviceId) {
+				req.deviceId = decoded.deviceId;
+			} else if (req.params.deviceId) {
+				// If user token and path includes deviceId, verify ownership to set context
+				const owned = await Device.findOne({ deviceId: req.params.deviceId, owner: decoded.userId });
+				if (owned) req.deviceId = req.params.deviceId;
+			}
+		} catch {
+			// Ignore invalid tokens and treat request as unauthenticated
+		}
+	}
+	next();
 };
 
 // Routes accessible with DEVICE_TOKEN

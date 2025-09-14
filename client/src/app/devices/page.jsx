@@ -154,19 +154,19 @@ const DevicesPage = () => {
 		return "Weak";
 	};
 
-    const openDetails = async (deviceId) => {
-        try {
-            setDetailModal({ open: true, loading: true, deviceId, device: null, token: null });
-            const { device } = await apiService.getDevice(deviceId);
-            // Use current user access token for device auth (user token + deviceId)
-            const userToken = apiService.getAccessToken();
-            setDetailModal({ open: true, loading: false, deviceId, device, token: userToken });
-        } catch (e) {
-            console.error("Load device details failed", e);
-            toast.error("Failed to load device details");
-            setDetailModal((d) => ({ ...d, loading: false }));
-        }
-    };
+	const openDetails = async (deviceId) => {
+		try {
+			setDetailModal({ open: true, loading: true, deviceId, device: null, token: null });
+			const { device } = await apiService.getDevice(deviceId);
+			// Use current user access token for device auth (user token + deviceId)
+			const userToken = apiService.getAccessToken();
+			setDetailModal({ open: true, loading: false, deviceId, device, token: userToken });
+		} catch (e) {
+			console.error("Load device details failed", e);
+			toast.error("Failed to load device details");
+			setDetailModal((d) => ({ ...d, loading: false }));
+		}
+	};
 
 	const closeDetails = () => setDetailModal({ open: false, loading: false, deviceId: null, device: null, token: null });
 
@@ -195,18 +195,18 @@ const DevicesPage = () => {
 			let mapped = (apiDevices || [])
 				.filter((d) => d.isActive !== false)
 				.map((d) => ({
-				id: d.deviceId,
-				name: d.name,
-				type: d.category || d.type || "device",
-				status: {
-					isOnline: !!d.status?.isOnline,
-					lastSeen: d.status?.lastSeen || d.updatedAt,
-					battery: d.status?.battery || {},
-				},
-				sensors: {},
-				network: { signal: rssiToSignal(d.network?.signalStrength) },
-				location: d.location?.name || "Unknown",
-			}));
+					id: d.deviceId,
+					name: d.name,
+					type: d.category || d.type || "device",
+					status: {
+						isOnline: !!d.status?.isOnline,
+						lastSeen: d.status?.lastSeen || d.updatedAt,
+						battery: d.status?.battery || {},
+					},
+					sensors: {},
+					network: { signal: rssiToSignal(d.network?.signalStrength) },
+					location: d.location?.name || "Unknown",
+				}));
 
 			setDevices(mapped);
 			// Subscribe to device updates (optional; server currently broadcasts to all web clients)
@@ -546,7 +546,7 @@ const DevicesPage = () => {
 									</div>
 									<div>
 										<div className='flex items-center justify-between'>
-                                        <p className='text-xs text-gray-500 dark:text-gray-400'>USER_TOKEN</p>
+											<p className='text-xs text-gray-500 dark:text-gray-400'>USER_TOKEN</p>
 											<button
 												onClick={() => navigator.clipboard?.writeText(detailModal.token || "")}
 												className='text-xs text-blue-600 dark:text-blue-400 hover:underline'>

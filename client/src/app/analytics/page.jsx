@@ -74,19 +74,23 @@ const AnalyticsPage = () => {
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
 
-const [overview, setOverview] = useState({ totals: null, chart: [] });
+	const [overview, setOverview] = useState({ totals: null, chart: [] });
 
-const loadAnalyticsData = async () => {
-	try {
-		setIsLoading(true);
-		const data = await apiService.getAnalyticsOverview(timeRange === "24h" ? "24h" : timeRange === "30d" ? "30d" : "7d");
-		setOverview(data);
-	} catch (error) {
-		console.error("Failed to load analytics data:", error);
-	} finally {
-		setIsLoading(false);
-	}
-};
+	const loadAnalyticsData = async () => {
+		try {
+			setIsLoading(true);
+			const data = await apiService.getAnalyticsOverview(
+				timeRange === "24h" ? "24h"
+				: timeRange === "30d" ? "30d"
+				: "7d",
+			);
+			setOverview(data);
+		} catch (error) {
+			console.error("Failed to load analytics data:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
 	const handleLogout = async () => {
 		try {
@@ -96,8 +100,13 @@ const loadAnalyticsData = async () => {
 		}
 	};
 
-const analyticsData = overview.totals || { totalDataPoints: 0, averageTemperature: null, averageHumidity: null, deviceUptime: 0 };
-const chartData = overview.chart || [];
+	const analyticsData = overview.totals || {
+		totalDataPoints: 0,
+		averageTemperature: null,
+		averageHumidity: null,
+		deviceUptime: 0,
+	};
+	const chartData = overview.chart || [];
 
 	if (authLoading || isLoading) {
 		return (

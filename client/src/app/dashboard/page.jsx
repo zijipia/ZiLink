@@ -145,20 +145,20 @@ const DashboardPage = () => {
 			setDevices((prev) =>
 				prev.map((d) => {
 					if (d.id !== data.deviceId) return d;
-					const map = Array.isArray(data.sensorData)
-						? data.sensorData.reduce((acc, s) => {
-							if (s && s.type && typeof s.value !== "undefined") acc[s.type] = s.value;
-							return acc;
-						}, {})
-						: data.sensorData || {};
+					const map =
+						Array.isArray(data.sensorData) ?
+							data.sensorData.reduce((acc, s) => {
+								if (s && s.type && typeof s.value !== "undefined") acc[s.type] = s.value;
+								return acc;
+							}, {})
+						:	data.sensorData || {};
 					return {
 						...d,
 						sensors: { ...d.sensors, ...map },
 						status: { ...d.status, isOnline: true, lastSeen: new Date().toISOString() },
-						recentData: [
-							...(d.recentData || []),
-							{ time: new Date().toLocaleTimeString(), value: map.temperature || 0 },
-						].slice(-5),
+						recentData: [...(d.recentData || []), { time: new Date().toLocaleTimeString(), value: map.temperature || 0 }].slice(
+							-5,
+						),
 					};
 				}),
 			);
