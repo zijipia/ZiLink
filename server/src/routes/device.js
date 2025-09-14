@@ -107,181 +107,181 @@ router.put(["/:deviceId/status", "/status"], authenticateDevice, async (req, res
 });
 
 router.post(["/:deviceId/data", "/data"], authenticateDevice, async (req, res) => {
-  const deviceId = req.params.deviceId || req.deviceId;
-  const ip = getRequestIp(req);
-  console.log(`📥 Data from ${deviceId} (${ip}):`, req.body);
-  try {
-    const device = await Device.findOne({
-      deviceId,
-      owner: req.user._id,
-    });
+	const deviceId = req.params.deviceId || req.deviceId;
+	const ip = getRequestIp(req);
+	console.log(`📥 Data from ${deviceId} (${ip}):`, req.body);
+	try {
+		const device = await Device.findOne({
+			deviceId,
+			owner: req.user._id,
+		});
 
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: "Device not found",
-      });
-    }
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
 
-    const { sensors, data, deviceStatus, location, metadata } = req.body;
+		const { sensors, data, deviceStatus, location, metadata } = req.body;
 
-    if (!sensors || !Array.isArray(sensors) || sensors.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Sensor data is required",
-      });
-    }
+		if (!sensors || !Array.isArray(sensors) || sensors.length === 0) {
+			return res.status(400).json({
+				success: false,
+				message: "Sensor data is required",
+			});
+		}
 
-    // Create device data entry
-    const deviceData = new DeviceData({
-      device: device._id,
-      deviceId,
-      data: data || {},
-      sensors,
-      deviceStatus: deviceStatus || {},
-      location: location || {},
-      metadata: {
-        source: "http",
-        ...metadata,
-      },
-    });
+		// Create device data entry
+		const deviceData = new DeviceData({
+			device: device._id,
+			deviceId,
+			data: data || {},
+			sensors,
+			deviceStatus: deviceStatus || {},
+			location: location || {},
+			metadata: {
+				source: "http",
+				...metadata,
+			},
+		});
 
-    // Validate data
-    deviceData.validateData();
+		// Validate data
+		deviceData.validateData();
 
-    await deviceData.save();
+		await deviceData.save();
 
-    // Update device last seen
-    await device.updateStatus({
-      isOnline: true,
-      lastSeen: new Date(),
-      ...deviceStatus,
-    });
+		// Update device last seen
+		await device.updateStatus({
+			isOnline: true,
+			lastSeen: new Date(),
+			...deviceStatus,
+		});
 
-    // Broadcast to web clients
-    wsManager.broadcastToWebClients({
-      type: "device_data",
-      data: {
-        deviceId,
-        sensorData: sensors,
-        timestamp: deviceData.timestamp,
-      },
-    });
+		// Broadcast to web clients
+		wsManager.broadcastToWebClients({
+			type: "device_data",
+			data: {
+				deviceId,
+				sensorData: sensors,
+				timestamp: deviceData.timestamp,
+			},
+		});
 
-    res.status(201).json({
-      success: true,
-      message: "Device data saved successfully",
-    });
-  } catch (error) {
-    console.error("Submit device data error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
+		res.status(201).json({
+			success: true,
+			message: "Device data saved successfully",
+		});
+	} catch (error) {
+		console.error("Submit device data error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 // Batch data submission for multiple readings
 router.post(["/:deviceId/batch-data", "/batch-data"], authenticateDevice, async (req, res) => {
-  const deviceId = req.params.deviceId || req.deviceId;
-  const ip = getRequestIp(req);
-  console.log(`📥 Batch data from ${deviceId} (${ip}):`, req.body);
-  try {
-    const device = await Device.findOne({
-      deviceId,
-      owner: req.user._id,
-    });
+	const deviceId = req.params.deviceId || req.deviceId;
+	const ip = getRequestIp(req);
+	console.log(`📥 Batch data from ${deviceId} (${ip}):`, req.body);
+	try {
+		const device = await Device.findOne({
+			deviceId,
+			owner: req.user._id,
+		});
 
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: "Device not found",
-      });
-    }
+		if (!device) {
+			return res.status(404).json({
+				success: false,
+				message: "Device not found",
+			});
+		}
 
-    const { batch } = req.body;
-    if (!batch || !Array.isArray(batch) || batch.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Batch array is required and must not be empty",
-      });
-    }
+		const { batch } = req.body;
+		if (!batch || !Array.isArray(batch) || batch.length === 0) {
+			return res.status(400).json({
+				success: false,
+				message: "Batch array is required and must not be empty",
+			});
+		}
 
-    const savedData = [];
-    let hasOnlineStatus = false;
-    const timestamps = [];
+		const savedData = [];
+		let hasOnlineStatus = false;
+		const timestamps = [];
 
-    for (const item of batch) {
-      const { sensors, data, deviceStatus, location, metadata } = item;
+		for (const item of batch) {
+			const { sensors, data, deviceStatus, location, metadata } = item;
 
-      if (!sensors || !Array.isArray(sensors) || sensors.length === 0) {
-        console.warn(`Skipping invalid batch item: no sensors`);
-        continue;
-      }
+			if (!sensors || !Array.isArray(sensors) || sensors.length === 0) {
+				console.warn(`Skipping invalid batch item: no sensors`);
+				continue;
+			}
 
-      // Create device data entry
-      const deviceData = new DeviceData({
-        device: device._id,
-        deviceId,
-        data: data || {},
-        sensors,
-        deviceStatus: deviceStatus || {},
-        location: location || {},
-        metadata: {
-          source: "http-batch",
-          ...metadata,
-        },
-      });
+			// Create device data entry
+			const deviceData = new DeviceData({
+				device: device._id,
+				deviceId,
+				data: data || {},
+				sensors,
+				deviceStatus: deviceStatus || {},
+				location: location || {},
+				metadata: {
+					source: "http-batch",
+					...metadata,
+				},
+			});
 
-      // Validate data
-      deviceData.validateData();
+			// Validate data
+			deviceData.validateData();
 
-      await deviceData.save();
-      savedData.push(deviceData);
+			await deviceData.save();
+			savedData.push(deviceData);
 
-      if (deviceStatus && deviceStatus.isOnline) {
-        hasOnlineStatus = true;
-      }
-      timestamps.push(new Date());
-    }
+			if (deviceStatus && deviceStatus.isOnline) {
+				hasOnlineStatus = true;
+			}
+			timestamps.push(new Date());
+		}
 
-    // Update device last seen if any item indicates online
-    if (hasOnlineStatus || timestamps.length > 0) {
-      await device.updateStatus({
-        isOnline: true,
-        lastSeen: new Date(Math.max(...timestamps.map(t => t.getTime()))),
-        ...batch[batch.length - 1]?.deviceStatus, // Use last item's status
-      });
-    }
+		// Update device last seen if any item indicates online
+		if (hasOnlineStatus || timestamps.length > 0) {
+			await device.updateStatus({
+				isOnline: true,
+				lastSeen: new Date(Math.max(...timestamps.map((t) => t.getTime()))),
+				...batch[batch.length - 1]?.deviceStatus, // Use last item's status
+			});
+		}
 
-    // Broadcast aggregated data to web clients
-    wsManager.broadcastToWebClients({
-      type: "device_batch_data",
-      data: {
-        deviceId,
-        batchData: savedData.map(d => ({
-          sensorData: d.sensors,
-          timestamp: d.timestamp,
-        })),
-        count: savedData.length,
-      },
-    });
+		// Broadcast aggregated data to web clients
+		wsManager.broadcastToWebClients({
+			type: "device_batch_data",
+			data: {
+				deviceId,
+				batchData: savedData.map((d) => ({
+					sensorData: d.sensors,
+					timestamp: d.timestamp,
+				})),
+				count: savedData.length,
+			},
+		});
 
-    res.status(201).json({
-      success: true,
-      message: `Batch data saved successfully (${savedData.length} items)`,
-      data: {
-        savedCount: savedData.length,
-        skippedCount: batch.length - savedData.length,
-      },
-    });
-  } catch (error) {
-    console.error("Submit batch device data error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
-  }
+		res.status(201).json({
+			success: true,
+			message: `Batch data saved successfully (${savedData.length} items)`,
+			data: {
+				savedCount: savedData.length,
+				skippedCount: batch.length - savedData.length,
+			},
+		});
+	} catch (error) {
+		console.error("Submit batch device data error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Internal server error",
+		});
+	}
 });
 
 router.post(["/:deviceId/components", "/components"], maybeAuthenticateDevice, async (req, res) => {

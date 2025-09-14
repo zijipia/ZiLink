@@ -1,1 +1,4 @@
+client/src/components/ui/Gauge.jsx
+client/src/components/ui/LiveChart.jsx
 formatted_files.txt
+server/src/routes/device.js
