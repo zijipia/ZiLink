@@ -1,6 +1,7 @@
 import WebSocket, { WebSocketServer } from "ws";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
+import Device from "../models/Device.js";
 
 class WebSocketManager {
 	constructor() {
@@ -98,7 +99,7 @@ class WebSocketManager {
 
 	async handleAuth(ws, data) {
 		try {
-			const { token, clientType } = data; // clientType: 'web' | 'device'
+			const { token, clientType, deviceId: claimedDeviceId } = data; // clientType: 'web' | 'device'
 
 			if (!token) {
 				return this.sendError(ws, "Authentication token required");
@@ -112,8 +113,22 @@ class WebSocketManager {
 			ws.authenticated = true;
 
 			if (clientType === "device") {
-				ws.deviceId = decoded.deviceId;
-				this.deviceConnections.set(decoded.deviceId, ws);
+				let finalDeviceId = decoded.deviceId;
+				// Allow user token + explicit deviceId if it belongs to the user
+				if (!finalDeviceId && claimedDeviceId) {
+					const device = await Device.findOne({ deviceId: claimedDeviceId, owner: decoded.userId });
+					if (!device) {
+						return this.sendError(ws, "Invalid device or not owned by user");
+					}
+					finalDeviceId = claimedDeviceId;
+				}
+
+				if (!finalDeviceId) {
+					return this.sendError(ws, "Device ID required for device client");
+				}
+
+				ws.deviceId = finalDeviceId;
+				this.deviceConnections.set(finalDeviceId, ws);
 			} else {
 				// Web client
 				if (!this.clients.has(decoded.userId)) {
@@ -127,6 +142,7 @@ class WebSocketManager {
 				data: {
 					userId: decoded.userId,
 					clientType: ws.clientType,
+					deviceId: ws.deviceId,
 					message: "Authentication successful",
 				},
 			});

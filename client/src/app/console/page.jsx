@@ -29,6 +29,8 @@ import {
 	XCircle,
 	Clock,
 } from "lucide-react";
+import apiService from "@/lib/api";
+import websocketService from "@/lib/websocket";
 
 const ConsolePage = () => {
 	const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -66,73 +68,53 @@ const ConsolePage = () => {
 		{ id: "error", name: "Error", color: "red", icon: XCircle },
 	];
 
-	// Mock log data
-	const mockLogs = [
-		{ id: 1, timestamp: new Date(), level: "info", message: "Device ESP32-001 connected successfully", source: "device-manager" },
-		{
-			id: 2,
-			timestamp: new Date(Date.now() - 1000),
-			level: "success",
-			message: "Temperature sensor calibration completed",
-			source: "sensor-service",
-		},
-		{
-			id: 3,
-			timestamp: new Date(Date.now() - 2000),
-			level: "warning",
-			message: "High humidity detected in kitchen sensor",
-			source: "alert-system",
-		},
-		{
-			id: 4,
-			timestamp: new Date(Date.now() - 3000),
-			level: "error",
-			message: "Failed to connect to MQTT broker",
-			source: "mqtt-client",
-		},
-		{
-			id: 5,
-			timestamp: new Date(Date.now() - 4000),
-			level: "info",
-			message: "Dashboard data updated",
-			source: "dashboard-service",
-		},
-		{
-			id: 6,
-			timestamp: new Date(Date.now() - 5000),
-			level: "success",
-			message: "User authentication successful",
-			source: "auth-service",
-		},
-		{
-			id: 7,
-			timestamp: new Date(Date.now() - 6000),
-			level: "warning",
-			message: "Battery level low on device ESP32-002",
-			source: "device-monitor",
-		},
-		{
-			id: 8,
-			timestamp: new Date(Date.now() - 7000),
-			level: "info",
-			message: "WebSocket connection established",
-			source: "websocket-service",
-		},
-		{
-			id: 9,
-			timestamp: new Date(Date.now() - 8000),
-			level: "error",
-			message: "Database connection timeout",
-			source: "database-service",
-		},
-		{
-			id: 10,
-			timestamp: new Date(Date.now() - 9000),
-			level: "success",
-			message: "Data backup completed successfully",
-			source: "backup-service",
-		},
-	];
+// Sync logs with server and websocket
+useEffect(() => {
+    if (!authLoading && !isAuthenticated) return;
+    if (!isAuthenticated) return;
+
+    let detach = () => {};
+
+    (async () => {
+        try {
+            const recent = await apiService.getRecentLogs(200, "all");
+            setLogs(
+                recent.map((l, idx) => ({
+                    id: `${l.timestamp}-${idx}`,
+                    timestamp: new Date(l.timestamp),
+                    level: l.level === "error" ? "error" : "info",
+                    message: l.message,
+                    source: l.source || "server",
+                })),
+            );
+        } catch (e) {
+            console.error("Load logs failed", e);
+        }
+
+        const append = (entry) => setLogs((prev) => [...prev, entry].slice(-1000));
+        const onDeviceData = ({ deviceId, sensorData }) => {
+            const count = Array.isArray(sensorData) ? sensorData.length : 1;
+            append({ id: `${Date.now()}-data-${deviceId}`, timestamp: new Date(), level: "info", message: `Device ${deviceId} sent ${count} reading(s)`, source: "ws/device_data" });
+        };
+        const onDeviceOnline = ({ deviceId }) => append({ id: `${Date.now()}-online-${deviceId}`, timestamp: new Date(), level: "success", message: `Device ${deviceId} online`, source: "ws" });
+        const onDeviceOffline = ({ deviceId }) => append({ id: `${Date.now()}-offline-${deviceId}`, timestamp: new Date(), level: "warning", message: `Device ${deviceId} offline`, source: "ws" });
+        const onError = ({ error }) => append({ id: `${Date.now()}-err`, timestamp: new Date(), level: "error", message: error, source: "ws" });
+
+        websocketService.on("device_data", onDeviceData);
+        websocketService.on("device_online", onDeviceOnline);
+        websocketService.on("device_offline", onDeviceOffline);
+        websocketService.on("error", onError);
+
+        detach = () => {
+            websocketService.off("device_data", onDeviceData);
+            websocketService.off("device_online", onDeviceOnline);
+            websocketService.off("device_offline", onDeviceOffline);
+            websocketService.off("error", onError);
+        };
+    })();
+
+    return () => detach();
+}, [isAuthenticated, authLoading]);
 
 	useEffect(() => {
 		if (!authLoading && !isAuthenticated) {
@@ -167,37 +149,11 @@ const ConsolePage = () => {
 		}
 	}, [logs, isAutoScroll]);
 
-	// Simulate real-time logs
-	useEffect(() => {
-		if (!isPaused) {
-			const interval = setInterval(() => {
-				const newLog = mockLogs[Math.floor(Math.random() * mockLogs.length)];
-				setLogs((prev) => [
-					...prev,
-					{
-						...newLog,
-						id: Date.now(),
-						timestamp: new Date(),
-					},
-				]);
-			}, 2000);
+// Stop appending when paused (handled in UI operations)
 
-			return () => clearInterval(interval);
-		}
-	}, [isPaused]);
-
-	const loadConsoleData = async () => {
-		try {
-			setIsLoading(true);
-			// Initialize with some logs
-			setLogs(mockLogs);
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-		} catch (error) {
-			console.error("Failed to load console data:", error);
-		} finally {
-			setIsLoading(false);
-		}
-	};
+const loadConsoleData = async () => {
+    setIsLoading(false);
+};
 
 	const handleLogout = async () => {
 		try {

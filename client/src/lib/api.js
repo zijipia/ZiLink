@@ -453,6 +453,27 @@ class ApiService {
 	}
 
 	/**
+	 * Get analytics overview
+	 * @param {('24h'|'7d'|'30d')} [range='7d']
+	 * @returns {Promise<{ totals: { totalDataPoints: number; averageTemperature: number|null; averageHumidity: number|null; deviceUptime: number }, chart: Array<any> }>}
+	 */
+	async getAnalyticsOverview(range = "7d") {
+		const response = await this.api.get("/api/analytics/overview", { params: { range } });
+		return response.data.data;
+	}
+
+	/**
+	 * Get recent server logs
+	 * @param {number} [limit=200]
+	 * @param {'all'|'info'|'error'} [level='all']
+	 * @returns {Promise<Array<{timestamp:string, level:string, message:string, source:string}>>}
+	 */
+	async getRecentLogs(limit = 200, level = "all") {
+		const response = await this.api.get("/api/logs/recent", { params: { limit, level } });
+		return response.data.data;
+	}
+
+	/**
 	 * Get saved UI layout
 	 * @returns {Promise<Array<Object>>}
 	 */

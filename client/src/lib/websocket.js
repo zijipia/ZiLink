@@ -166,6 +166,10 @@ class WebSocketService {
 				this.emit("device_data", /** @type {DeviceDataMessage} */ (data));
 				break;
 
+			case "device_batch_data":
+				this.emit("device_batch_data", data);
+				break;
+
 			case "device_status_update":
 				this.emit("device_status", /** @type {DeviceStatusMessage} */ (data));
 				break;

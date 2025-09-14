@@ -4,11 +4,11 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Wifi, Battery, Power, RefreshCw, Thermometer, Droplets } from "lucide-react";
+import { Activity, Wifi, Battery, Power, RefreshCw, Thermometer, Droplets, Info } from "lucide-react";
 import { Gauge } from "@/components/ui/Gauge"; // Placeholder for Gauge component
 import { LiveChart } from "@/components/ui/LiveChart"; // Placeholder for LiveChart component
 
-export function DeviceCard({ device, onControl }) {
+export function DeviceCard({ device, onControl, onDetails }) {
 	const isOnline = device.status?.isOnline || false;
 	const batteryLevel = device.status?.battery?.level || 0;
 	const temperature = device.sensors?.temperature || 25;
@@ -126,6 +126,14 @@ export function DeviceCard({ device, onControl }) {
 							<RefreshCw className='w-4 h-4' />
 							<span className='hidden sm:inline'>Refresh</span>
 						</button>
+						{onDetails && (
+							<button
+								onClick={() => onDetails(device.id)}
+								className='flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 font-medium'>
+								<Info className='w-4 h-4' />
+								<span className='hidden sm:inline'>Details</span>
+							</button>
+						)}
 					</div>
 				</CardContent>
 			</Card>

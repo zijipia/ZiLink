@@ -30,6 +30,7 @@ import {
 	Eye,
 	Code,
 } from "lucide-react";
+import apiService from "@/lib/api";
 
 const DesignerPage = () => {
 	const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -101,11 +102,13 @@ const DesignerPage = () => {
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
 
+	const [layout, setLayout] = useState([]);
+
 	const loadDesignerData = async () => {
 		try {
 			setIsLoading(true);
-			// Mock loading delay
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			const saved = await apiService.getLayout();
+			setLayout(Array.isArray(saved) ? saved : []);
 		} catch (error) {
 			console.error("Failed to load designer data:", error);
 		} finally {

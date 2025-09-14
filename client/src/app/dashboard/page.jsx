@@ -95,53 +95,29 @@ const DashboardPage = () => {
 			setIsLoading(true);
 			const data = await apiService.getDashboardData();
 			setDashboardData(data);
-			// Initialize devices from data
-			if (data.recentDevices) {
+
+			// Fetch real devices for grid
+			try {
+				const { devices: apiDevices } = await apiService.getDevices({ limit: 20, page: 1 });
+				const rssiToSignal = (rssi) => {
+					if (typeof rssi !== "number") return "N/A";
+					if (rssi >= -60) return "Strong";
+					if (rssi >= -75) return "Medium";
+					return "Weak";
+				};
 				setDevices(
-					data.recentDevices.map((d) => ({
-						id: d._id,
+					(apiDevices || []).map((d) => ({
+						id: d.deviceId,
 						name: d.name,
-						status: d.status || { isOnline: false, lastSeen: new Date().toISOString(), battery: { level: 50 } },
-						sensors: d.sensors || { temperature: 25, humidity: 60 },
-						network: d.network || { signal: "N/A" },
-						recentData: d.recentData || [],
+						status: d.status || { isOnline: false, lastSeen: d.updatedAt },
+						sensors: {},
+						network: { signal: rssiToSignal(d.network?.signalStrength) },
 					})),
 				);
-			}
+			} catch (_) {}
 		} catch (error) {
 			console.error("Failed to load dashboard data:", error);
 			toast.error("Failed to load dashboard data");
-			// Fallback mock data
-			setDevices([
-				{
-					id: "1",
-					name: "ESP32 Sensor 1",
-					status: { isOnline: true, lastSeen: new Date().toISOString(), battery: { level: 85 } },
-					sensors: { temperature: 25.3, humidity: 60 },
-					network: { signal: "Strong" },
-					recentData: [
-						{ time: "09:00", value: 24 },
-						{ time: "09:15", value: 25 },
-						{ time: "09:30", value: 25.5 },
-						{ time: "09:45", value: 25.3 },
-						{ time: "10:00", value: 26 },
-					],
-				},
-				{
-					id: "2",
-					name: "ESP32 Actuator 1",
-					status: { isOnline: false, lastSeen: new Date().toISOString(), battery: { level: 20 } },
-					sensors: { temperature: 22.1, humidity: 55 },
-					network: { signal: "Weak" },
-					recentData: [
-						{ time: "14:00", value: 21 },
-						{ time: "14:15", value: 21.5 },
-						{ time: "14:30", value: 22 },
-						{ time: "14:45", value: 22.2 },
-						{ time: "15:00", value: 22.1 },
-					],
-				},
-			]);
 		} finally {
 			setIsLoading(false);
 		}
@@ -167,19 +143,24 @@ const DashboardPage = () => {
 			toast.success(`New data from ${data.deviceId}`, { duration: 2000 });
 			// Update device state with real-time data
 			setDevices((prev) =>
-				prev.map((d) =>
-					d.id === data.deviceId ?
-						{
-							...d,
-							sensors: { ...d.sensors, ...data.sensorData },
-							status: { ...d.status, isOnline: true, lastSeen: new Date().toISOString() },
-							recentData: [
-								...(d.recentData || []),
-								{ time: new Date().toLocaleTimeString(), value: data.sensorData.temperature || 0 },
-							].slice(-5),
-						}
-					:	d,
-				),
+				prev.map((d) => {
+					if (d.id !== data.deviceId) return d;
+					const map = Array.isArray(data.sensorData)
+						? data.sensorData.reduce((acc, s) => {
+							if (s && s.type && typeof s.value !== "undefined") acc[s.type] = s.value;
+							return acc;
+						}, {})
+						: data.sensorData || {};
+					return {
+						...d,
+						sensors: { ...d.sensors, ...map },
+						status: { ...d.status, isOnline: true, lastSeen: new Date().toISOString() },
+						recentData: [
+							...(d.recentData || []),
+							{ time: new Date().toLocaleTimeString(), value: map.temperature || 0 },
+						].slice(-5),
+					};
+				}),
 			);
 		};
 

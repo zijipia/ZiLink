@@ -10,6 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { DeviceCard } from "@/components/ui/DeviceCard";
 import { SkeletonDashboard } from "@/components/ui/Skeleton";
 import Sidebar from "@/components/Sidebar";
+import apiService from "@/lib/api";
+import websocketService from "@/lib/websocket";
+import { toast } from "react-hot-toast";
 import {
 	Activity,
 	Wifi,
@@ -34,6 +37,7 @@ const DevicesPage = () => {
 	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [filterStatus, setFilterStatus] = useState("all");
+	const [detailModal, setDetailModal] = useState({ open: false, loading: false, deviceId: null, device: null, token: null });
 	const router = useRouter();
 
 	const containerVariants = {
@@ -63,6 +67,70 @@ const DevicesPage = () => {
 		}
 	}, [isAuthenticated, authLoading, router]);
 
+	// Listen for live device data over WebSocket and update UI
+	useEffect(() => {
+		if (!isAuthenticated) return;
+
+		const onDeviceData = (msg) => {
+			const { deviceId, sensorData, timestamp } = msg || {};
+			if (!deviceId) return;
+			setDevices((prev) =>
+				prev.map((d) => {
+					if (d.id !== deviceId) return d;
+					const sensorMap =
+						Array.isArray(sensorData) ?
+							sensorData.reduce((acc, s) => {
+								if (s && s.type && typeof s.value !== "undefined") {
+									acc[s.type] = s.value;
+								}
+								return acc;
+							}, {})
+						:	{};
+					return {
+						...d,
+						sensors: {
+							...d.sensors,
+							temperature: sensorMap.temperature ?? d.sensors?.temperature,
+							humidity: sensorMap.humidity ?? d.sensors?.humidity,
+						},
+						status: {
+							...d.status,
+							isOnline: true,
+							lastSeen: timestamp || new Date().toISOString(),
+						},
+					};
+				}),
+			);
+		};
+
+		const onDeviceOnline = ({ deviceId, timestamp }) => {
+			if (!deviceId) return;
+			setDevices((prev) =>
+				prev.map((d) =>
+					d.id === deviceId ? { ...d, status: { ...d.status, isOnline: true, lastSeen: timestamp || d.status?.lastSeen } } : d,
+				),
+			);
+		};
+
+		const onDeviceOffline = ({ deviceId, timestamp }) => {
+			if (!deviceId) return;
+			setDevices((prev) =>
+				prev.map((d) =>
+					d.id === deviceId ? { ...d, status: { ...d.status, isOnline: false, lastSeen: timestamp || d.status?.lastSeen } } : d,
+				),
+			);
+		};
+
+		websocketService.on("device_data", onDeviceData);
+		websocketService.on("device_online", onDeviceOnline);
+		websocketService.on("device_offline", onDeviceOffline);
+		return () => {
+			websocketService.off("device_data", onDeviceData);
+			websocketService.off("device_online", onDeviceOnline);
+			websocketService.off("device_offline", onDeviceOffline);
+		};
+	}, [isAuthenticated]);
+
 	// Handle sidebar visibility based on screen size
 	useEffect(() => {
 		const handleResize = () => {
@@ -78,62 +146,113 @@ const DevicesPage = () => {
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
 
+	// Map RSSI (dBm) to signal label
+	const rssiToSignal = (rssi) => {
+		if (typeof rssi !== "number") return "N/A";
+		if (rssi >= -60) return "Strong";
+		if (rssi >= -75) return "Medium";
+		return "Weak";
+	};
+
+    const openDetails = async (deviceId) => {
+        try {
+            setDetailModal({ open: true, loading: true, deviceId, device: null, token: null });
+            const { device } = await apiService.getDevice(deviceId);
+            // Use current user access token for device auth (user token + deviceId)
+            const userToken = apiService.getAccessToken();
+            setDetailModal({ open: true, loading: false, deviceId, device, token: userToken });
+        } catch (e) {
+            console.error("Load device details failed", e);
+            toast.error("Failed to load device details");
+            setDetailModal((d) => ({ ...d, loading: false }));
+        }
+    };
+
+	const closeDetails = () => setDetailModal({ open: false, loading: false, deviceId: null, device: null, token: null });
+
+	const deleteCurrentDevice = async () => {
+		const id = detailModal.deviceId;
+		if (!id) return;
+		if (!confirm("Delete this device? This action cannot be undone.")) return;
+		try {
+			setDetailModal((m) => ({ ...m, loading: true }));
+			await apiService.deleteDevice(id);
+			toast.success("Device deleted");
+			setDevices((prev) => prev.filter((d) => d.id !== id));
+			closeDetails();
+		} catch (e) {
+			console.error("Delete device failed", e);
+			const msg = e?.response?.data?.message || e?.message || "Failed to delete device";
+			toast.error(msg);
+			setDetailModal((m) => ({ ...m, loading: false }));
+		}
+	};
+
 	const loadDevices = async () => {
 		try {
 			setIsLoading(true);
-			// Mock data for now
-			setDevices([
-				{
-					id: "1",
-					name: "ESP32 Sensor 1",
-					type: "Temperature Sensor",
-					status: { isOnline: true, lastSeen: new Date().toISOString(), battery: { level: 85 } },
-					sensors: { temperature: 25.3, humidity: 60 },
-					network: { signal: "Strong" },
-					location: "Living Room",
-					recentData: [
-						{ time: "09:00", value: 24 },
-						{ time: "09:15", value: 25 },
-						{ time: "09:30", value: 25.5 },
-						{ time: "09:45", value: 25.3 },
-						{ time: "10:00", value: 26 },
-					],
+			const { devices: apiDevices } = await apiService.getDevices();
+			let mapped = (apiDevices || [])
+				.filter((d) => d.isActive !== false)
+				.map((d) => ({
+				id: d.deviceId,
+				name: d.name,
+				type: d.category || d.type || "device",
+				status: {
+					isOnline: !!d.status?.isOnline,
+					lastSeen: d.status?.lastSeen || d.updatedAt,
+					battery: d.status?.battery || {},
 				},
-				{
-					id: "2",
-					name: "ESP32 Actuator 1",
-					type: "Smart Switch",
-					status: { isOnline: false, lastSeen: new Date().toISOString(), battery: { level: 20 } },
-					sensors: { temperature: 22.1, humidity: 55 },
-					network: { signal: "Weak" },
-					location: "Kitchen",
-					recentData: [
-						{ time: "14:00", value: 21 },
-						{ time: "14:15", value: 21.5 },
-						{ time: "14:30", value: 22 },
-						{ time: "14:45", value: 22.2 },
-						{ time: "15:00", value: 22.1 },
-					],
-				},
-				{
-					id: "3",
-					name: "Arduino Motion Detector",
-					type: "Motion Sensor",
-					status: { isOnline: true, lastSeen: new Date().toISOString(), battery: { level: 95 } },
-					sensors: { temperature: 23.5, humidity: 58 },
-					network: { signal: "Strong" },
-					location: "Hallway",
-					recentData: [
-						{ time: "08:00", value: 0 },
-						{ time: "08:30", value: 1 },
-						{ time: "09:00", value: 0 },
-						{ time: "09:30", value: 1 },
-						{ time: "10:00", value: 0 },
-					],
-				},
-			]);
+				sensors: {},
+				network: { signal: rssiToSignal(d.network?.signalStrength) },
+				location: d.location?.name || "Unknown",
+			}));
+
+			setDevices(mapped);
+			// Subscribe to device updates (optional; server currently broadcasts to all web clients)
+			try {
+				mapped.forEach((dev) => websocketService.subscribeToDevice(dev.id));
+			} catch (_) {}
+
+			// Hydrate with latest sensor values (limit=1) for quick snapshot
+			try {
+				const updates = await Promise.all(
+					mapped.map(async (dev) => {
+						try {
+							const latest = await apiService.getDeviceData(dev.id, { limit: 1 });
+							const item = latest?.data?.[0];
+							if (!item) return dev;
+							const sensorMap =
+								Array.isArray(item.sensors) ?
+									item.sensors.reduce((acc, s) => {
+										if (s && s.type && typeof s.value !== "undefined") acc[s.type] = s.value;
+										return acc;
+									}, {})
+								:	{};
+							return {
+								...dev,
+								sensors: {
+									...dev.sensors,
+									temperature: sensorMap.temperature ?? dev.sensors?.temperature,
+									humidity: sensorMap.humidity ?? dev.sensors?.humidity,
+								},
+								status: {
+									...dev.status,
+									lastSeen: item.timestamp || dev.status.lastSeen,
+								},
+							};
+						} catch (_) {
+							return dev;
+						}
+					}),
+				);
+				setDevices(updates);
+			} catch (hydrateErr) {
+				console.warn("Hydrate latest sensors failed", hydrateErr);
+			}
 		} catch (error) {
-			console.error("Failed to load devices:", error);
+			console.error("Failed to load devices", error);
+			toast.error("Failed to load devices");
 		} finally {
 			setIsLoading(false);
 		}
@@ -147,9 +266,17 @@ const DevicesPage = () => {
 		}
 	};
 
-	const handleControl = (deviceId, command) => {
-		console.log(`Sending command ${command} to device ${deviceId}`);
-		// Implement device control logic
+	const handleControl = async (deviceId, command) => {
+		try {
+			const sent = websocketService.sendDeviceCommand(deviceId, command);
+			if (!sent) {
+				await apiService.sendDeviceCommand(deviceId, command);
+			}
+			toast.success("Command sent");
+		} catch (err) {
+			console.error("Send command failed", err);
+			toast.error("Failed to send command");
+		}
 	};
 
 	const filteredDevices = devices.filter((device) => {
@@ -350,6 +477,7 @@ const DevicesPage = () => {
 										<DeviceCard
 											device={device}
 											onControl={handleControl}
+											onDetails={openDetails}
 										/>
 									</motion.div>
 								))}
@@ -383,6 +511,70 @@ const DevicesPage = () => {
 					</motion.div>
 				</div>
 			</main>
+			{/* Details Modal */}
+			{detailModal.open && (
+				<div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4'>
+					<div className='w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700'>
+						<div className='px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between'>
+							<h3 className='text-lg font-semibold text-gray-900 dark:text-white'>Device Details</h3>
+							<button
+								onClick={closeDetails}
+								className='text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'>
+								✕
+							</button>
+						</div>
+						<div className='px-6 py-4 space-y-3'>
+							{detailModal.loading ?
+								<p className='text-sm text-gray-500 dark:text-gray-400'>Loading...</p>
+							:	<>
+									<div>
+										<p className='text-xs text-gray-500 dark:text-gray-400'>Name</p>
+										<p className='text-sm font-medium text-gray-900 dark:text-white'>
+											{detailModal.device?.name || detailModal.deviceId}
+										</p>
+									</div>
+									<div>
+										<div className='flex items-center justify-between'>
+											<p className='text-xs text-gray-500 dark:text-gray-400'>DEVICE_ID</p>
+											<button
+												onClick={() => navigator.clipboard?.writeText(detailModal.deviceId || "")}
+												className='text-xs text-blue-600 dark:text-blue-400 hover:underline'>
+												Copy
+											</button>
+										</div>
+										<p className='break-all text-sm font-mono text-gray-800 dark:text-gray-200'>{detailModal.deviceId}</p>
+									</div>
+									<div>
+										<div className='flex items-center justify-between'>
+                                        <p className='text-xs text-gray-500 dark:text-gray-400'>USER_TOKEN</p>
+											<button
+												onClick={() => navigator.clipboard?.writeText(detailModal.token || "")}
+												className='text-xs text-blue-600 dark:text-blue-400 hover:underline'>
+												Copy
+											</button>
+										</div>
+										<p className='break-all text-xs font-mono text-gray-800 dark:text-gray-200'>
+											{detailModal.token || "(no token)"}
+										</p>
+									</div>
+								</>
+							}
+						</div>
+						<div className='px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between'>
+							<button
+								onClick={closeDetails}
+								className='px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'>
+								Close
+							</button>
+							<button
+								onClick={deleteCurrentDevice}
+								className='px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700'>
+								Delete Device
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };

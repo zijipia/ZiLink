@@ -15,6 +15,8 @@ import connectDB from "./config/database.js";
 import authRoutes from "./routes/auth.js";
 import deviceRoutes from "./routes/device.js";
 import userRoutes from "./routes/user.js";
+import logsRoutes from "./routes/logs.js";
+import analyticsRoutes from "./routes/analytics.js";
 import { initWebSocketServer } from "./services/websocket.js";
 import { initMQTTServer, mqttServer } from "./services/mqttServer.js";
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -119,6 +121,8 @@ class ZiLinkServer extends EventEmitter {
 		this.app.use("/api/devices", deviceRoutes);
 		this.app.use("/devices", deviceRoutes);
 		this.app.use("/api/users", userRoutes);
+        this.app.use("/api/logs", logsRoutes);
+        this.app.use("/api/analytics", analyticsRoutes);
 
 		// Error handling middleware
 		this.app.use(notFound);

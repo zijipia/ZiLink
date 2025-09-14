@@ -22,6 +22,7 @@ import {
 	Eye,
 	EyeOff,
 } from "lucide-react";
+import apiService from "@/lib/api";
 
 const AnalyticsPage = () => {
 	const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -73,17 +74,19 @@ const AnalyticsPage = () => {
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
 
-	const loadAnalyticsData = async () => {
-		try {
-			setIsLoading(true);
-			// Mock loading delay
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-		} catch (error) {
-			console.error("Failed to load analytics data:", error);
-		} finally {
-			setIsLoading(false);
-		}
-	};
+const [overview, setOverview] = useState({ totals: null, chart: [] });
+
+const loadAnalyticsData = async () => {
+	try {
+		setIsLoading(true);
+		const data = await apiService.getAnalyticsOverview(timeRange === "24h" ? "24h" : timeRange === "30d" ? "30d" : "7d");
+		setOverview(data);
+	} catch (error) {
+		console.error("Failed to load analytics data:", error);
+	} finally {
+		setIsLoading(false);
+	}
+};
 
 	const handleLogout = async () => {
 		try {
@@ -93,27 +96,8 @@ const AnalyticsPage = () => {
 		}
 	};
 
-	// Mock data
-	const analyticsData = {
-		totalDataPoints: 15420,
-		averageTemperature: 24.5,
-		averageHumidity: 58.3,
-		deviceUptime: 99.2,
-		dataTransmission: 98.7,
-		alertsGenerated: 12,
-		energyConsumption: 45.8,
-		networkLatency: 12.5,
-	};
-
-	const chartData = [
-		{ time: "00:00", temperature: 23.2, humidity: 55, devices: 3 },
-		{ time: "04:00", temperature: 22.8, humidity: 58, devices: 3 },
-		{ time: "08:00", temperature: 24.1, humidity: 52, devices: 3 },
-		{ time: "12:00", temperature: 26.3, humidity: 48, devices: 3 },
-		{ time: "16:00", temperature: 27.1, humidity: 45, devices: 3 },
-		{ time: "20:00", temperature: 25.8, humidity: 50, devices: 3 },
-		{ time: "24:00", temperature: 24.2, humidity: 54, devices: 3 },
-	];
+const analyticsData = overview.totals || { totalDataPoints: 0, averageTemperature: null, averageHumidity: null, deviceUptime: 0 };
+const chartData = overview.chart || [];
 
 	if (authLoading || isLoading) {
 		return (
