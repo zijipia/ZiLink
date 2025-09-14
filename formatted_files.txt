@@ -1,14 +1,1 @@
-Zlinktest/.vscode/extensions.json
-Zlinktest/include/README
-Zlinktest/lib/README
-Zlinktest/test/README
-client/src/app/analytics/page.jsx
-client/src/app/console/page.jsx
-client/src/app/dashboard/page.jsx
-client/src/app/devices/page.jsx
-client/src/app/viewer/page.jsx
 formatted_files.txt
-server/src/index.js
-server/src/routes/analytics.js
-server/src/routes/device.js
-server/src/routes/logs.js
