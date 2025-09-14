@@ -30,16 +30,49 @@ bool ZiLinkEsp32::sendData(const String &payload) {
 }
 
 void ZiLinkEsp32::setupWebSocket(const char *host, uint16_t port, const char *path, const char *deviceId, const char *token) {
-        _token = token;
-        _deviceId = deviceId;
-        _ws.begin(host, port, path);
-        _ws.onEvent([this](WStype_t type, uint8_t *, size_t) {
-                if (type == WStype_CONNECTED) {
-                        String authMsg =
-                            "{\"type\":\"auth\",\"data\":{\"token\":\"" + _token + "\",\"clientType\":\"device\"}}";
-                        _ws.sendTXT(authMsg);
-                }
-        });
+  _token = token;
+  _deviceId = deviceId;
+  _ws.begin(host, port, path);
+  _ws.onEvent([this](WStype_t type, uint8_t * payload, size_t length) {
+    switch(type) {
+      case WStype_DISCONNECTED:
+        Serial.printf("[%s] Disconnected!\n", _deviceId.c_str());
+        break;
+      case WStype_CONNECTED:
+        {
+          Serial.printf("[%s] Connected to server!\n", _deviceId.c_str());
+          String authMsg = "{\"type\":\"auth\",\"data\":{\"token\":\"" + _token + "\",\"clientType\":\"device\"}}";
+          _ws.sendTXT(authMsg);
+          // Subscribe to device commands
+          String subMsg = "{\"type\":\"subscribe_device\",\"data\":{\"deviceId\":\"" + _deviceId + "\"}}";
+          _ws.sendTXT(subMsg);
+        }
+        break;
+      case WStype_TEXT:
+        {
+          String message = String((char*)payload);
+          Serial.printf("[%s] Received: %s\n", _deviceId.c_str(), message.c_str());
+          // Parse and handle command
+          DynamicJsonDocument doc(1024);
+          deserializeJson(doc, message);
+          const char* msgType = doc["type"];
+          if (strcmp(msgType, "command") == 0) {
+            const char* command = doc["data"]["command"];
+            Serial.printf("Received command: %s\n", command);
+            // Call user callback or update local state
+            // Example: if (strcmp(command, "toggle") == 0) digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+          }
+        }
+        break;
+      case WStype_BIN:
+        Serial.printf("[%s] Binary message received\n", _deviceId.c_str());
+        break;
+      case WStype_ERROR:
+        Serial.printf("[%s] Error!\n", _deviceId.c_str());
+        break;
+    }
+  });
+  _ws.setReconnectInterval(5000);
 }
 
 bool ZiLinkEsp32::sendWebSocketData(const String &message) {
@@ -52,13 +85,35 @@ bool ZiLinkEsp32::sendWebSocketData(const String &message) {
 }
 
 void ZiLinkEsp32::setupMqtt(const char *broker, uint16_t port, const char *deviceId, const char *token) {
-        _token = token;
-        _deviceId = deviceId;
-        _mqtt.setServer(broker, port);
-        while (!_mqtt.connected()) {
-                _mqtt.connect(deviceId, _token.c_str(), "");
-                delay(500);
-        }
+  _token = token;
+  _deviceId = deviceId;
+  _mqtt.setServer(broker, port);
+  _mqtt.setCallback([this](char* topic, byte* payload, unsigned int length) {
+    String message;
+    for (int i = 0; i < length; i++) {
+      message += (char)payload[i];
+    }
+    Serial.printf("[%s] MQTT message on topic %s: %s\n", _deviceId.c_str(), topic, message.c_str());
+    // Parse and handle command
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, message);
+    const char* msgType = doc["type"];
+    if (strcmp(msgType, "command") == 0) {
+      const char* command = doc["data"]["command"];
+      Serial.printf("Received MQTT command: %s\n", command);
+      // Call user callback or update local state
+      // Example: if (strcmp(command, "toggle") == 0) digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    }
+  });
+  while (!_mqtt.connected()) {
+    if (_mqtt.connect(deviceId, _token.c_str(), "")) {
+      Serial.printf("[%s] Connected to MQTT broker\n", _deviceId.c_str());
+      String subTopic = "zilink/devices/" + String(deviceId) + "/commands";
+      _mqtt.subscribe(subTopic.c_str());
+    } else {
+      delay(500);
+    }
+  }
 }
 
 bool ZiLinkEsp32::publishMqttData(const String &payload) {
@@ -114,6 +169,9 @@ void ZiLinkEsp32::createProgress(int value, const char *id) {
 }
 
 void ZiLinkEsp32::loop() {
-        _ws.loop();
-        _mqtt.loop();
+  _ws.loop();
+  if (!_mqtt.connected()) {
+    _mqtt.connect(_deviceId.c_str(), _token.c_str(), "");
+  }
+  _mqtt.loop();
 }

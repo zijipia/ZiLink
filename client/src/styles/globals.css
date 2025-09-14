@@ -72,7 +72,104 @@ body {
 }
 
 @layer base {
+	* {
+		@apply border-gray-200 dark:border-gray-700;
+	}
+
 	body {
-		@apply bg-[--background] text-[--foreground];
+		@apply bg-[--background] text-[--foreground] font-sans antialiased;
+		line-height: 1.6;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		@apply font-semibold tracking-tight;
+	}
+
+	h1 {
+		@apply text-3xl sm:text-4xl lg:text-5xl;
+	}
+
+	h2 {
+		@apply text-2xl sm:text-3xl lg:text-4xl;
+	}
+
+	h3 {
+		@apply text-xl sm:text-2xl;
+	}
+
+	h4 {
+		@apply text-lg sm:text-xl;
+	}
+
+	p {
+		@apply leading-relaxed;
+	}
+
+	/* Custom scrollbar */
+	::-webkit-scrollbar {
+		width: 6px;
+		height: 6px;
+	}
+
+	::-webkit-scrollbar-track {
+		@apply bg-gray-100 dark:bg-gray-800;
+	}
+
+	::-webkit-scrollbar-thumb {
+		@apply bg-gray-300 dark:bg-gray-600 rounded-full;
+	}
+
+	::-webkit-scrollbar-thumb:hover {
+		@apply bg-gray-400 dark:bg-gray-500;
+	}
+
+	/* Focus styles */
+	.focus-visible {
+		@apply outline-none ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-900;
+	}
+
+	/* Selection styles */
+	::selection {
+		@apply bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100;
+	}
+
+	/* Smooth transitions */
+	* {
+		transition-property:
+			color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter,
+			backdrop-filter;
+		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+		transition-duration: 150ms;
+	}
+}
+
+@layer components {
+	/* Custom button styles */
+	.btn-primary {
+		@apply bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-sm hover:shadow-md transition-all duration-200;
+	}
+
+	.btn-secondary {
+		@apply bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700;
+	}
+
+	/* Card hover effects */
+	.card-hover {
+		@apply hover:shadow-lg hover:-translate-y-1 transition-all duration-200;
+	}
+
+	/* Gradient text */
+	.gradient-text {
+		@apply bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent;
+	}
+
+	/* Glass effect */
+	.glass {
+		@apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-white/20 dark:border-gray-700/50;
 	}
 }

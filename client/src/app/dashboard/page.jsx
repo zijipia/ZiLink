@@ -1,12 +1,19 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import apiService from "@/lib/api";
 import websocketService from "@/lib/websocket";
 import { toast } from "react-hot-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { DeviceCard } from "@/components/ui/DeviceCard";
+import { SkeletonDashboard } from "@/components/ui/Skeleton";
+import Sidebar from "@/components/Sidebar";
+import { Activity, Wifi, Battery, Server, Menu, LogOut, Plus } from "lucide-react";
 
 /**
  * @typedef {Object} DashboardData
@@ -34,7 +41,25 @@ const DashboardPage = () => {
 	const [isLoading, setIsLoading] = useState(true);
 	/** @type {['connected' | 'connecting' | 'disconnected', function]} */
 	const [wsStatus, setWsStatus] = useState("connecting");
+	const [devices, setDevices] = useState([]);
+	const [sidebarOpen, setSidebarOpen] = useState(true);
 	const router = useRouter();
+
+	const containerVariants = {
+		hidden: { opacity: 0 },
+		visible: {
+			opacity: 1,
+			transition: {
+				staggerChildren: 0.1,
+				delayChildren: 0.2,
+			},
+		},
+	};
+
+	const itemVariants = {
+		hidden: { opacity: 0, y: 20 },
+		visible: { opacity: 1, y: 0 },
+	};
 
 	useEffect(() => {
 		if (!authLoading && !isAuthenticated) {
@@ -48,14 +73,75 @@ const DashboardPage = () => {
 		}
 	}, [isAuthenticated, authLoading, router]);
 
+	// Handle sidebar visibility based on screen size
+	useEffect(() => {
+		const handleResize = () => {
+			if (window.innerWidth >= 1024) {
+				setSidebarOpen(true);
+			} else {
+				setSidebarOpen(false);
+			}
+		};
+
+		// Set initial state
+		handleResize();
+
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
 	const loadDashboardData = async () => {
 		try {
 			setIsLoading(true);
 			const data = await apiService.getDashboardData();
 			setDashboardData(data);
+			// Initialize devices from data
+			if (data.recentDevices) {
+				setDevices(
+					data.recentDevices.map((d) => ({
+						id: d._id,
+						name: d.name,
+						status: d.status || { isOnline: false, lastSeen: new Date().toISOString(), battery: { level: 50 } },
+						sensors: d.sensors || { temperature: 25, humidity: 60 },
+						network: d.network || { signal: "N/A" },
+						recentData: d.recentData || [],
+					})),
+				);
+			}
 		} catch (error) {
 			console.error("Failed to load dashboard data:", error);
 			toast.error("Failed to load dashboard data");
+			// Fallback mock data
+			setDevices([
+				{
+					id: "1",
+					name: "ESP32 Sensor 1",
+					status: { isOnline: true, lastSeen: new Date().toISOString(), battery: { level: 85 } },
+					sensors: { temperature: 25.3, humidity: 60 },
+					network: { signal: "Strong" },
+					recentData: [
+						{ time: "09:00", value: 24 },
+						{ time: "09:15", value: 25 },
+						{ time: "09:30", value: 25.5 },
+						{ time: "09:45", value: 25.3 },
+						{ time: "10:00", value: 26 },
+					],
+				},
+				{
+					id: "2",
+					name: "ESP32 Actuator 1",
+					status: { isOnline: false, lastSeen: new Date().toISOString(), battery: { level: 20 } },
+					sensors: { temperature: 22.1, humidity: 55 },
+					network: { signal: "Weak" },
+					recentData: [
+						{ time: "14:00", value: 21 },
+						{ time: "14:15", value: 21.5 },
+						{ time: "14:30", value: 22 },
+						{ time: "14:45", value: 22.2 },
+						{ time: "15:00", value: 22.1 },
+					],
+				},
+			]);
 		} finally {
 			setIsLoading(false);
 		}
@@ -79,6 +165,22 @@ const DashboardPage = () => {
 		const handleDeviceData = (data) => {
 			console.log("Received device data:", data);
 			toast.success(`New data from ${data.deviceId}`, { duration: 2000 });
+			// Update device state with real-time data
+			setDevices((prev) =>
+				prev.map((d) =>
+					d.id === data.deviceId ?
+						{
+							...d,
+							sensors: { ...d.sensors, ...data.sensorData },
+							status: { ...d.status, isOnline: true, lastSeen: new Date().toISOString() },
+							recentData: [
+								...(d.recentData || []),
+								{ time: new Date().toLocaleTimeString(), value: data.sensorData.temperature || 0 },
+							].slice(-5),
+						}
+					:	d,
+				),
+			);
 		};
 
 		/**
@@ -87,6 +189,7 @@ const DashboardPage = () => {
 		 */
 		const handleDeviceStatus = (data) => {
 			console.log("Device status update:", data);
+			setDevices((prev) => prev.map((d) => (d.id === data.deviceId ? { ...d, status: { ...d.status, ...data.status } } : d)));
 		};
 
 		/**
@@ -120,10 +223,50 @@ const DashboardPage = () => {
 		}
 	};
 
+	const handleControl = (deviceId, command) => {
+		console.log(`Sending command ${command} to device ${deviceId}`);
+		websocketService.send("command", { deviceId, command });
+		toast.success(`Command ${command} sent to ${deviceId}`);
+	};
+
 	if (authLoading || isLoading) {
 		return (
-			<div className='min-h-screen flex items-center justify-center bg-gray-50'>
-				<div className='animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600'></div>
+			<div className='flex min-h-screen bg-gray-50 dark:bg-gray-900'>
+				{/* Sidebar Navigation */}
+				<Sidebar
+					isOpen={sidebarOpen}
+					onClose={() => setSidebarOpen(false)}
+				/>
+
+				{/* Main Content */}
+				<main className='flex-1 transition-all'>
+					{/* Header */}
+					<div className='bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700'>
+						<div className='px-4 sm:px-6 lg:px-8'>
+							<div className='flex justify-between items-center py-4'>
+								<div className='flex items-center'>
+									<button
+										onClick={() => setSidebarOpen(true)}
+										className='lg:hidden mr-4 p-2 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'>
+										<span className='sr-only'>Open sidebar</span>
+										<Menu className='h-6 w-6' />
+									</button>
+									<div className='w-10 h-10 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center mr-4'>
+										<Activity className='w-6 h-6 text-white' />
+									</div>
+									<div>
+										<h1 className='text-2xl font-bold text-gray-900 dark:text-white'>Dashboard</h1>
+										<p className='text-sm text-gray-500 dark:text-gray-400'>Loading...</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div className='px-4 sm:px-6 lg:px-8 py-6'>
+						<SkeletonDashboard />
+					</div>
+				</main>
 			</div>
 		);
 	}
@@ -133,255 +276,169 @@ const DashboardPage = () => {
 	}
 
 	return (
-		<div className='min-h-screen bg-gray-50'>
-			{/* Header */}
-			<div className='bg-white shadow'>
-				<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-					<div className='flex justify-between items-center py-6'>
-						<div className='flex items-center'>
-							<div className='w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-4'>
-								<svg
-									className='w-6 h-6 text-white'
-									fill='none'
-									stroke='currentColor'
-									viewBox='0 0 24 24'>
-									<path
-										strokeLinecap='round'
-										strokeLinejoin='round'
-										strokeWidth={2}
-										d='M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
-									/>
-								</svg>
-							</div>
-							<div>
-								<h1 className='text-2xl font-bold text-gray-900'>ZiLink Dashboard</h1>
-								<p className='text-sm text-gray-500'>Welcome back, {user?.name}</p>
-							</div>
-						</div>
-
-						<div className='flex items-center space-x-4'>
-							{/* WebSocket Status */}
-							<div className='flex items-center space-x-2'>
-								<div
-									className={`w-3 h-3 rounded-full ${
-										wsStatus === "connected" ? "bg-green-400"
-										: wsStatus === "connecting" ? "bg-yellow-400"
-										: "bg-red-400"
-									}`}></div>
-								<span className='text-sm text-gray-600 capitalize'>{wsStatus}</span>
-							</div>
-
-							<button
-								onClick={handleLogout}
-								className='px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'>
-								Logout
-							</button>
-						</div>
-					</div>
-				</div>
-			</div>
+		<div className='flex min-h-screen bg-gray-50 dark:bg-gray-900'>
+			{/* Sidebar Navigation */}
+			<Sidebar
+				isOpen={sidebarOpen}
+				onClose={() => setSidebarOpen(false)}
+			/>
 
 			{/* Main Content */}
-			<div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-				{dashboardData ?
-					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
-						{/* Summary Cards */}
-						<div className='bg-white p-6 rounded-lg shadow'>
-							<div className='flex items-center justify-between'>
+			<main className='flex-1 transition-all'>
+				{/* Header */}
+				<div className='bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700'>
+					<div className='px-4 sm:px-6 lg:px-8'>
+						<div className='flex justify-between items-center py-4'>
+							<div className='flex items-center'>
+								<button
+									onClick={() => setSidebarOpen(true)}
+									className='lg:hidden mr-4 p-2 rounded-md text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'>
+									<span className='sr-only'>Open sidebar</span>
+									<Menu className='h-6 w-6' />
+								</button>
+								<div className='w-10 h-10 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center mr-4'>
+									<Activity className='w-6 h-6 text-white' />
+								</div>
 								<div>
-									<p className='text-sm text-gray-600'>Total Devices</p>
-									<p className='text-3xl font-bold text-gray-900'>{dashboardData.summary.totalDevices}</p>
-								</div>
-								<div className='w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center'>
-									<svg
-										className='w-6 h-6 text-blue-600'
-										fill='none'
-										stroke='currentColor'
-										viewBox='0 0 24 24'>
-										<path
-											strokeLinecap='round'
-											strokeLinejoin='round'
-											strokeWidth={2}
-											d='M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z'
-										/>
-									</svg>
+									<h1 className='text-2xl font-bold text-gray-900 dark:text-white'>Dashboard</h1>
+									<p className='text-sm text-gray-500 dark:text-gray-400'>Welcome back, {user?.name}</p>
 								</div>
 							</div>
-						</div>
 
-						<div className='bg-white p-6 rounded-lg shadow'>
-							<div className='flex items-center justify-between'>
-								<div>
-									<p className='text-sm text-gray-600'>Online Devices</p>
-									<p className='text-3xl font-bold text-green-600'>{dashboardData.summary.onlineDevices}</p>
+							<div className='flex items-center space-x-4'>
+								{/* WebSocket Status */}
+								<div className='hidden sm:flex items-center space-x-2 px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg'>
+									<div
+										className={`w-2 h-2 rounded-full ${
+											wsStatus === "connected" ? "bg-green-400"
+											: wsStatus === "connecting" ? "bg-yellow-400"
+											: "bg-red-400"
+										}`}></div>
+									<span className='text-sm text-gray-600 dark:text-gray-400 capitalize font-medium'>{wsStatus}</span>
 								</div>
-								<div className='w-12 h-12 bg-green-100 rounded-full flex items-center justify-center'>
-									<svg
-										className='w-6 h-6 text-green-600'
-										fill='none'
-										stroke='currentColor'
-										viewBox='0 0 24 24'>
-										<path
-											strokeLinecap='round'
-											strokeLinejoin='round'
-											strokeWidth={2}
-											d='M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z'
-										/>
-									</svg>
-								</div>
-							</div>
-						</div>
 
-						<div className='bg-white p-6 rounded-lg shadow'>
-							<div className='flex items-center justify-between'>
-								<div>
-									<p className='text-sm text-gray-600'>Offline Devices</p>
-									<p className='text-3xl font-bold text-red-600'>{dashboardData.summary.offlineDevices}</p>
-								</div>
-								<div className='w-12 h-12 bg-red-100 rounded-full flex items-center justify-center'>
-									<svg
-										className='w-6 h-6 text-red-600'
-										fill='none'
-										stroke='currentColor'
-										viewBox='0 0 24 24'>
-										<path
-											strokeLinecap='round'
-											strokeLinejoin='round'
-											strokeWidth={2}
-											d='M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21.192 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3l8.293 8.293'
-										/>
-									</svg>
-								</div>
-							</div>
-						</div>
-
-						<div className='bg-white p-6 rounded-lg shadow'>
-							<div className='flex items-center justify-between'>
-								<div>
-									<p className='text-sm text-gray-600'>Uptime</p>
-									<p className='text-3xl font-bold text-blue-600'>{dashboardData.summary.uptimePercentage}%</p>
-								</div>
-								<div className='w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center'>
-									<svg
-										className='w-6 h-6 text-blue-600'
-										fill='none'
-										stroke='currentColor'
-										viewBox='0 0 24 24'>
-										<path
-											strokeLinecap='round'
-											strokeLinejoin='round'
-											strokeWidth={2}
-											d='M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'
-										/>
-									</svg>
-								</div>
-							</div>
-						</div>
-					</div>
-				:	<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
-						{[...Array(4)].map((_, i) => (
-							<div
-								key={i}
-								className='bg-white p-6 rounded-lg shadow animate-pulse'>
-								<div className='flex items-center justify-between'>
-									<div className='space-y-2'>
-										<div className='h-4 bg-gray-200 rounded w-24'></div>
-										<div className='h-8 bg-gray-200 rounded w-16'></div>
-									</div>
-									<div className='w-12 h-12 bg-gray-200 rounded-full'></div>
-								</div>
-							</div>
-						))}
-					</div>
-				}
-
-				{/* Quick Actions */}
-				<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-					<div className='bg-white p-6 rounded-lg shadow'>
-						<h3 className='text-lg font-semibold text-gray-900 mb-4'>Quick Actions</h3>
-						<div className='space-y-3'>
-							<Link
-								href='/devices/new'
-								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
-								+ Add New Device
-							</Link>
-							<Link
-								href='/devices'
-								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
-								📋 Manage Devices
-							</Link>
-							<Link
-								href='/analytics'
-								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
-								📊 View Analytics
-							</Link>
-							<Link
-								href='/settings'
-								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
-								⚙️ Settings
-							</Link>
-							<Link
-								href='/designer'
-								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
-								🛠️ UI Designer
-							</Link>
-							<Link
-								href='/viewer'
-								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
-								👁️ Viewer
-							</Link>
-							<Link
-								href='/console'
-								className='block w-full text-left px-4 py-2 text-sm text-gray-700 bg-gray-50 rounded-md hover:bg-gray-100 transition duration-200'>
-								📝 Raw Console
-							</Link>
-						</div>
-					</div>
-
-					<div className='bg-white p-6 rounded-lg shadow'>
-						<h3 className='text-lg font-semibold text-gray-900 mb-4'>Recent Activity</h3>
-						<div className='space-y-3'>
-							<div className='flex items-center space-x-3'>
-								<div className='w-2 h-2 bg-green-400 rounded-full'></div>
-								<span className='text-sm text-gray-600'>Device ESP32-001 came online</span>
-							</div>
-							<div className='flex items-center space-x-3'>
-								<div className='w-2 h-2 bg-blue-400 rounded-full'></div>
-								<span className='text-sm text-gray-600'>New data from Temp Sensor</span>
-							</div>
-							<div className='flex items-center space-x-3'>
-								<div className='w-2 h-2 bg-yellow-400 rounded-full'></div>
-								<span className='text-sm text-gray-600'>Battery low on Device 003</span>
-							</div>
-						</div>
-					</div>
-
-					<div className='bg-white p-6 rounded-lg shadow'>
-						<h3 className='text-lg font-semibold text-gray-900 mb-4'>System Status</h3>
-						<div className='space-y-3'>
-							<div className='flex justify-between items-center'>
-								<span className='text-sm text-gray-600'>API Server</span>
-								<span className='text-sm text-green-600 font-medium'>Online</span>
-							</div>
-							<div className='flex justify-between items-center'>
-								<span className='text-sm text-gray-600'>WebSocket</span>
-								<span
-									className={`text-sm font-medium ${
-										wsStatus === "connected" ? "text-green-600"
-										: wsStatus === "connecting" ? "text-yellow-600"
-										: "text-red-600"
-									}`}>
-									{wsStatus.charAt(0).toUpperCase() + wsStatus.slice(1)}
-								</span>
-							</div>
-							<div className='flex justify-between items-center'>
-								<span className='text-sm text-gray-600'>MQTT Broker</span>
-								<span className='text-sm text-green-600 font-medium'>Connected</span>
+								<button
+									onClick={handleLogout}
+									className='flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors'>
+									<LogOut className='w-4 h-4' />
+									<span className='hidden sm:inline'>Logout</span>
+								</button>
 							</div>
 						</div>
 					</div>
 				</div>
-			</div>
+
+				<div className='px-4 sm:px-6 lg:px-8 py-6'>
+					<motion.div
+						variants={containerVariants}
+						initial='hidden'
+						animate='visible'
+						className='space-y-8'>
+						{/* Summary Cards */}
+						<motion.section variants={itemVariants}>
+							<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6'>
+								<Card className='bg-white dark:bg-gray-800 border-0 shadow-sm hover:shadow-md transition-shadow duration-200'>
+									<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+										<CardTitle className='text-sm font-medium text-gray-600 dark:text-gray-400'>Total Devices</CardTitle>
+										<Activity className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+									</CardHeader>
+									<CardContent>
+										<div className='text-3xl font-bold text-gray-900 dark:text-white'>
+											{dashboardData?.summary?.totalDevices || 0}
+										</div>
+										<p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>All registered devices</p>
+									</CardContent>
+								</Card>
+
+								<Card className='bg-white dark:bg-gray-800 border-0 shadow-sm hover:shadow-md transition-shadow duration-200'>
+									<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+										<CardTitle className='text-sm font-medium text-gray-600 dark:text-gray-400'>Online Devices</CardTitle>
+										<Wifi className='h-4 w-4 text-green-600 dark:text-green-400' />
+									</CardHeader>
+									<CardContent>
+										<div className='text-3xl font-bold text-green-600 dark:text-green-400'>
+											{dashboardData?.summary?.onlineDevices || 0}
+										</div>
+										<p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>Currently connected</p>
+									</CardContent>
+								</Card>
+
+								<Card className='bg-white dark:bg-gray-800 border-0 shadow-sm hover:shadow-md transition-shadow duration-200'>
+									<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+										<CardTitle className='text-sm font-medium text-gray-600 dark:text-gray-400'>Offline Devices</CardTitle>
+										<Battery className='h-4 w-4 text-red-600 dark:text-red-400' />
+									</CardHeader>
+									<CardContent>
+										<div className='text-3xl font-bold text-red-600 dark:text-red-400'>
+											{dashboardData?.summary?.offlineDevices || 0}
+										</div>
+										<p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>Disconnected</p>
+									</CardContent>
+								</Card>
+
+								<Card className='bg-white dark:bg-gray-800 border-0 shadow-sm hover:shadow-md transition-shadow duration-200'>
+									<CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+										<CardTitle className='text-sm font-medium text-gray-600 dark:text-gray-400'>Uptime</CardTitle>
+										<Server className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+									</CardHeader>
+									<CardContent>
+										<div className='text-3xl font-bold text-blue-600 dark:text-blue-400'>
+											{dashboardData?.summary?.uptimePercentage || 0}%
+										</div>
+										<p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>System availability</p>
+									</CardContent>
+								</Card>
+							</div>
+						</motion.section>
+
+						{/* Devices Section */}
+						<motion.section variants={itemVariants}>
+							<div className='flex flex-col sm:flex-row sm:items-center justify-between mb-6 space-y-4 sm:space-y-0'>
+								<h2 className='text-2xl font-bold text-gray-900 dark:text-white'>Your Devices</h2>
+								<Link
+									href='/devices/new'
+									className='inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 shadow-sm hover:shadow-md'>
+									<Plus className='w-4 h-4' />
+									<span>Add Device</span>
+								</Link>
+							</div>
+							<div className='grid grid-cols-1 xl:grid-cols-2 gap-6'>
+								{devices.map((device) => (
+									<motion.div
+										key={device.id}
+										variants={itemVariants}
+										whileHover={{ scale: 1.02 }}
+										transition={{ duration: 0.2 }}>
+										<DeviceCard
+											device={device}
+											onControl={handleControl}
+										/>
+									</motion.div>
+								))}
+								{devices.length === 0 && (
+									<motion.div
+										variants={itemVariants}
+										className='col-span-full text-center py-16 bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600'>
+										<div className='w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4'>
+											<Wifi className='w-8 h-8 text-gray-400' />
+										</div>
+										<h3 className='text-lg font-semibold text-gray-900 dark:text-white mb-2'>No devices yet</h3>
+										<p className='text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto'>
+											Get started by adding your first IoT device to begin monitoring and controlling your smart environment.
+										</p>
+										<Link
+											href='/devices/new'
+											className='inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 shadow-sm hover:shadow-md'>
+											<Plus className='w-4 h-4' />
+											<span>Add First Device</span>
+										</Link>
+									</motion.div>
+								)}
+							</div>
+						</motion.section>
+					</motion.div>
+				</div>
+			</main>
 		</div>
 	);
 };
