@@ -121,8 +121,8 @@ class ZiLinkServer extends EventEmitter {
 		this.app.use("/api/devices", deviceRoutes);
 		this.app.use("/devices", deviceRoutes);
 		this.app.use("/api/users", userRoutes);
-        this.app.use("/api/logs", logsRoutes);
-        this.app.use("/api/analytics", analyticsRoutes);
+		this.app.use("/api/logs", logsRoutes);
+		this.app.use("/api/analytics", analyticsRoutes);
 
 		// Error handling middleware
 		this.app.use(notFound);
