@@ -62,14 +62,14 @@ hỗ trợ real-time data monitoring, device management, và OAuth authenticatio
 
 ### 1. Clone Repository
 
-```bash
+\`\`\`bash
 git clone https://github.com/your-username/zilink.git
 cd zilink
-```
+\`\`\`
 
 ### 2. Cài Đặt Dependencies
 
-```bash
+\`\`\`bash
 # Root dependencies
 npm install
 
@@ -80,7 +80,7 @@ npm install
 # Client dependencies
 cd ../client
 npm install
-```
+\`\`\`
 
 ### 3. Cấu Hình Environment
 
@@ -88,7 +88,7 @@ npm install
 
 Tạo file `.env` trong thư mục `server/`:
 
-```env
+\`\`\`env
 # Server Configuration
 PORT=3001
 NODE_ENV=development
@@ -123,13 +123,13 @@ CLIENT_URL=http://localhost:3000
 
 # Session Secret
 SESSION_SECRET=your-session-secret-change-this-in-production
-```
+\`\`\`
 
 #### Client Configuration
 
 Tạo file `.env.local` trong thư mục `client/`:
 
-```env
+\`\`\`env
 # API Configuration
 NEXT_PUBLIC_API_URL=http://localhost:3001
 NEXT_PUBLIC_WS_URL=ws://localhost:3001
@@ -147,15 +147,15 @@ NEXT_PUBLIC_APP_VERSION=1.0.0
 NEXT_PUBLIC_ENABLE_REAL_TIME=true
 NEXT_PUBLIC_ENABLE_MQTT_LOGS=true
 NEXT_PUBLIC_ENABLE_DEVICE_SIMULATION=true
-```
+\`\`\`
 
 ### 4. Cài Đặt MongoDB
 
 #### Sử dụng Docker
 
-```bash
+\`\`\`bash
 docker run --name mongodb -d -p 27017:27017 mongo:latest
-```
+\`\`\`
 
 #### Hoặc cài đặt local MongoDB
 
@@ -165,25 +165,25 @@ Tham khao: [MongoDB Installation Guide](https://docs.mongodb.com/manual/installa
 
 #### Ubuntu/Debian
 
-```bash
+\`\`\`bash
 sudo apt update
 sudo apt install mosquitto mosquitto-clients
 sudo systemctl start mosquitto
 sudo systemctl enable mosquitto
-```
+\`\`\`
 
 #### macOS
 
-```bash
+\`\`\`bash
 brew install mosquitto
 brew services start mosquitto
-```
+\`\`\`
 
 #### Docker
 
-```bash
+\`\`\`bash
 docker run -it -p 1883:1883 eclipse-mosquitto
-```
+\`\`\`
 
 ## 🚀 Khởi Chạy Ứng Dụng
 
@@ -191,24 +191,24 @@ docker run -it -p 1883:1883 eclipse-mosquitto
 
 Từ thư mục root:
 
-```bash
+\`\`\`bash
 # Chạy cả server và client
 npm run dev
 
 # Hoặc chạy riêng lẻ:
 npm run dev:server  # Chỉ server
 npm run dev:client  # Chỉ client
-```
+\`\`\`
 
 ### Production Mode
 
-```bash
+\`\`\`bash
 # Build ứng dụng
 npm run build
 
 # Chạy production
 npm start
-```
+\`\`\`
 
 Ứng dụng sẽ chạy tại:
 
@@ -223,7 +223,7 @@ npm start
 
 #### Login
 
-```http
+\`\`\`http
 POST /api/auth/login
 Content-Type: application/json
 
@@ -231,11 +231,11 @@ Content-Type: application/json
   "email": "user@example.com",
   "password": "password"
 }
-```
+\`\`\`
 
 #### Register
 
-```http
+\`\`\`http
 POST /api/auth/register
 Content-Type: application/json
 
@@ -244,30 +244,30 @@ Content-Type: application/json
   "password": "password",
   "name": "User Name"
 }
-```
+\`\`\`
 
 #### OAuth Login
 
-```http
+\`\`\`http
 GET /api/auth/google
 GET /api/auth/github
 GET /api/auth/discord
-```
+\`\`\`
 
 ### Device Management Endpoints
 
 #### Get Devices
 
-```http
+\`\`\`http
 GET /api/devices
 Authorization: Bearer <token>
-```
+\`\`\`
 
 Mỗi thiết bị trong kết quả sẽ bao gồm trường `deviceToken` để sử dụng khi thiết bị kết nối tới nền tảng.
 
 #### Register Device
 
-```http
+\`\`\`http
 POST /api/devices/register
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -278,11 +278,11 @@ Content-Type: application/json
   "type": "sensor",
   "category": "temperature"
 }
-```
+\`\`\`
 
 #### Send Device Command
 
-```http
+\`\`\`http
 POST /api/devices/{deviceId}/command
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -293,20 +293,20 @@ Content-Type: application/json
     "parameters": {}
   }
 }
-```
+\`\`\`
 
 #### Get Device Data
 
-```http
+\`\`\`http
 GET /api/devices/{deviceId}/data?limit=100&startDate=2023-01-01&endDate=2023-12-31
 Authorization: Bearer <token>
-```
+\`\`\`
 
 ## 🔌 WebSocket API
 
 ### Connection
 
-```javascript
+\`\`\`javascript
 const ws = new WebSocket("ws://localhost:3001/ws");
 
 // Authenticate
@@ -319,11 +319,11 @@ ws.send(
 		},
 	}),
 );
-```
+\`\`\`
 
 ### Subscribe to Device
 
-```javascript
+\`\`\`javascript
 ws.send(
 	JSON.stringify({
 		type: "subscribe_device",
@@ -332,11 +332,11 @@ ws.send(
 		},
 	}),
 );
-```
+\`\`\`
 
 ### Send Device Command
 
-```javascript
+\`\`\`javascript
 ws.send(
 	JSON.stringify({
 		type: "device_command",
@@ -346,19 +346,19 @@ ws.send(
 		},
 	}),
 );
-```
+\`\`\`
 
 ## 📊 MQTT Topics
 
 ### Device Data
 
-```
+\`\`\`
 zilink/devices/{deviceId}/data
-```
+\`\`\`
 
 Payload:
 
-```json
+\`\`\`json
 {
 	"sensors": [
 		{
@@ -372,46 +372,46 @@ Payload:
 		"signalStrength": -45
 	}
 }
-```
+\`\`\`
 
 ### Device Status
 
-```
+\`\`\`
 zilink/devices/{deviceId}/status
-```
+\`\`\`
 
 ### Device Alerts
 
-```
+\`\`\`
 zilink/devices/{deviceId}/alert
-```
+\`\`\`
 
 Payload:
 
-```json
+\`\`\`json
 {
 	"type": "threshold",
 	"severity": "warning",
 	"message": "Temperature exceeded threshold",
 	"threshold": { "value": 30, "condition": ">" }
 }
-```
+\`\`\`
 
 ### Device Commands (Subscribe)
 
-```
+\`\`\`
 zilink/devices/{deviceId}/command
-```
+\`\`\`
 
 ### Server Status
 
-```
+\`\`\`
 zilink/server/status
-```
+\`\`\`
 
 ## 🏗️ Kiến Trúc Hệ Thống
 
-```
+\`\`\`
 ┌─────────────────┐    HTTP/WS     ┌─────────────────┐    MQTT      ┌─────────────────┐
 │                 │◄──────────────►│                 │◄────────────►│                 │
 │   Next.js Web   │                │   Node.js API   │              │   IoT Devices   │
@@ -427,13 +427,13 @@ zilink/server/status
                                    │   Database      │
                                    │                 │
                                    └─────────────────┘
-```
+\`\`\`
 
 ## 🔧 Device SDK & Examples
 
 ### Arduino ESP32 Example
 
-```cpp
+\`\`\`cpp
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -507,11 +507,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Turn off device
   }
 }
-```
+\`\`\`
 
 ### Python Device Example
 
-```python
+\`\`\`python
 import paho.mqtt.client as mqtt
 import json
 import time
@@ -577,13 +577,13 @@ class ZiLinkDevice:
 if __name__ == "__main__":
     device = ZiLinkDevice("python-sensor-001")
     device.run()
-```
+\`\`\`
 
 ## 🧪 Testing
 
 ### Unit Tests
 
-```bash
+\`\`\`bash
 # Test server
 cd server
 npm test
@@ -591,11 +591,11 @@ npm test
 # Test client
 cd client
 npm test
-```
+\`\`\`
 
 ### API Testing với cURL
 
-```bash
+\`\`\`bash
 # Health check
 curl http://localhost:3001/health
 
@@ -607,18 +607,18 @@ curl -X POST http://localhost:3001/api/auth/login \
 # Get devices (requires token)
 curl -X GET http://localhost:3001/api/devices \
   -H "Authorization: Bearer your-jwt-token"
-```
+\`\`\`
 
 ### MQTT Testing
 
-```bash
+\`\`\`bash
 # Subscribe to all device topics
 mosquitto_sub -h localhost -t "zilink/devices/+/data"
 
 # Publish test data
 mosquitto_pub -h localhost -t "zilink/devices/test-device/data" \
   -m '{"sensors":[{"type":"temperature","value":25.5,"unit":"°C"}]}'
-```
+\`\`\`
 
 ## 📦 Deployment
 
@@ -626,7 +626,7 @@ mosquitto_pub -h localhost -t "zilink/devices/test-device/data" \
 
 Tạo file `docker-compose.yml`:
 
-```yaml
+\`\`\`yaml
 version: "3.8"
 services:
   mongodb:
@@ -674,18 +674,18 @@ services:
 
 volumes:
   mongodb_data:
-```
+\`\`\`
 
-```bash
+\`\`\`bash
 # Deploy với Docker Compose
 docker-compose up -d
-```
+\`\`\`
 
 ### Production Deployment
 
 1. **Server Setup (Ubuntu)**:
 
-```bash
+\`\`\`bash
 # Install Node.js
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
@@ -698,11 +698,11 @@ sudo apt install mongodb
 
 # Install Mosquitto
 sudo apt install mosquitto mosquitto-clients
-```
+\`\`\`
 
 2. **Deploy Application**:
 
-```bash
+\`\`\`bash
 # Clone and build
 git clone https://github.com/your-username/zilink.git
 cd zilink
@@ -713,11 +713,11 @@ npm run build
 pm2 start ecosystem.config.js
 pm2 save
 pm2 startup
-```
+\`\`\`
 
 3. **Reverse Proxy (Nginx)**:
 
-```nginx
+\`\`\`nginx
 server {
     listen 80;
     server_name your-domain.com;
@@ -751,7 +751,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-```
+\`\`\`
 
 ## 🔒 Bảo Mật
 
@@ -801,7 +801,7 @@ Server tự động thêm security headers thông qua Helmet.js:
 
 ### Logs
 
-```bash
+\`\`\`bash
 # Server logs
 cd server
 npm run dev
@@ -813,7 +813,7 @@ npm run dev
 # PM2 logs (production)
 pm2 logs zilink-server
 pm2 logs zilink-client
-```
+\`\`\`
 
 ## 🤝 Contributing
 

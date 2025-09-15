@@ -4,7 +4,7 @@ This Arduino library simplifies connecting ESP32 devices to the ZiLink platform 
 
 ## Usage
 
-```cpp
+\`\`\`cpp
 #include <ZiLinkEsp32.h>
 
 ZiLinkEsp32 client;
@@ -30,7 +30,7 @@ void setup() {
 void loop() {
   client.loop();
 }
-```
+\`\`\`
 
 Provide your device ID and token to authenticate with the platform. The library handles WiFi connection and device-specific HTTP,
 WebSocket, or MQTT communication.
