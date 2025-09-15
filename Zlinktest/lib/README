@@ -11,14 +11,9 @@ README --> THIS FILE | |- platformio.ini |--src |- main.c
 
 Example contents of `src/main.c` using Foo and Bar:
 
-\`\`\`
-#include <Foo.h>
-#include <Bar.h>
+\`\`\` #include <Foo.h> #include <Bar.h>
 
-int main (void)
-{
-  ...
-}
+int main (void) { ... }
 
 \`\`\`
 
