@@ -7,22 +7,31 @@ const PropertyPanel = ({
 	defaultDeviceId,
 	availableDataKeys,
 	onUpdateShape,
-	onMoveZ,
 	onMoveToFront,
 	onMoveToBack,
+	fullSize = false,
 }) => {
+	const panelClass =
+		fullSize ?
+			"w-full h-full bg-white dark:bg-gray-800 p-6"
+		:	"w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4";
+	const titleClass =
+		fullSize ?
+			"text-xl font-semibold text-gray-900 dark:text-white mb-6"
+		:	"text-lg font-semibold text-gray-900 dark:text-white mb-4";
+
 	if (!selectedShape) {
 		return (
-			<div className='w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4'>
-				<h3 className='text-lg font-semibold text-gray-900 dark:text-white mb-4'>Properties</h3>
+			<div className={panelClass}>
+				<h3 className={titleClass}>Properties</h3>
 				<p className='text-sm text-gray-500 dark:text-gray-400'>Select an element to edit properties</p>
 			</div>
 		);
 	}
 
 	return (
-		<div className='w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4'>
-			<h3 className='text-lg font-semibold text-gray-900 dark:text-white mb-4'>Properties</h3>
+		<div className={panelClass}>
+			<h3 className={titleClass}>Properties</h3>
 			<div className='space-y-4'>
 				{/* Position */}
 				<div className='grid grid-cols-2 gap-2'>
@@ -99,37 +108,272 @@ const PropertyPanel = ({
 								}
 							</select>
 						</div>
-						<div className='flex items-center gap-2'>
-							<input
-								id='showChart'
-								type='checkbox'
-								checked={!!selectedShape.showChart || selectedShape.widgetKind === "chart"}
-								onChange={(e) => onUpdateShape({ showChart: e.target.checked })}
-								className='w-4 h-4'
-							/>
-							<label
-								htmlFor='showChart'
-								className='text-xs text-gray-600 dark:text-gray-400 select-none'>
-								Show chart inside
-							</label>
-						</div>
+
+						{/* Widget-specific properties */}
+						{selectedShape.widgetKind === "button" && (
+							<>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Button Label</label>
+									<input
+										value={selectedShape.label || "Button"}
+										onChange={(e) => onUpdateShape({ label: e.target.value })}
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Button Mode</label>
+									<select
+										value={selectedShape.buttonMode || "momentary"}
+										onChange={(e) => onUpdateShape({ buttonMode: e.target.value })}
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'>
+										<option value="momentary">Momentary</option>
+										<option value="toggle">Toggle</option>
+									</select>
+								</div>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Command</label>
+									<input
+										value={selectedShape.command || ""}
+										onChange={(e) => onUpdateShape({ command: e.target.value })}
+										placeholder='ESP32 command'
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+							</>
+						)}
+
+						{selectedShape.widgetKind === "toggle" && (
+							<>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Toggle Label</label>
+									<input
+										value={selectedShape.label || "Toggle"}
+										onChange={(e) => onUpdateShape({ label: e.target.value })}
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>On Command</label>
+									<input
+										value={selectedShape.onCommand || ""}
+										onChange={(e) => onUpdateShape({ onCommand: e.target.value })}
+										placeholder='ESP32 command when ON'
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Off Command</label>
+									<input
+										value={selectedShape.offCommand || ""}
+										onChange={(e) => onUpdateShape({ offCommand: e.target.value })}
+										placeholder='ESP32 command when OFF'
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+							</>
+						)}
+
+						{selectedShape.widgetKind === "slider" && (
+							<>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Slider Label</label>
+									<input
+										value={selectedShape.label || "Slider"}
+										onChange={(e) => onUpdateShape({ label: e.target.value })}
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+								<div className='grid grid-cols-2 gap-2'>
+									<div>
+										<label className='text-xs text-gray-600 dark:text-gray-400'>Min Value</label>
+										<input
+											type='number'
+											value={selectedShape.minValue || 0}
+											onChange={(e) => onUpdateShape({ minValue: Number(e.target.value) || 0 })}
+											className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+										/>
+									</div>
+									<div>
+										<label className='text-xs text-gray-600 dark:text-gray-400'>Max Value</label>
+										<input
+											type='number'
+											value={selectedShape.maxValue || 100}
+											onChange={(e) => onUpdateShape({ maxValue: Number(e.target.value) || 100 })}
+											className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+										/>
+									</div>
+								</div>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Command Template</label>
+									<input
+										value={selectedShape.commandTemplate || ""}
+										onChange={(e) => onUpdateShape({ commandTemplate: e.target.value })}
+										placeholder='ESP32 command (use {value} for slider value)'
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Current Value</label>
+									<input
+										type='number'
+										min={selectedShape.minValue || 0}
+										max={selectedShape.maxValue || 100}
+										value={selectedShape.currentValue || 0}
+										onChange={(e) => {
+											const value = Number(e.target.value);
+											onUpdateShape({ currentValue: value });
+											// Send command to ESP32
+											if (selectedShape.deviceId && selectedShape.commandTemplate) {
+												const command = selectedShape.commandTemplate.replace("{value}", value);
+												// This would need to be passed from parent component
+												// For now, we'll just update the local state
+											}
+										}}
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+							</>
+						)}
+
+						{selectedShape.widgetKind === "switch" && (
+							<>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Switch Label</label>
+									<input
+										value={selectedShape.label || "Switch"}
+										onChange={(e) => onUpdateShape({ label: e.target.value })}
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>On Command</label>
+									<input
+										value={selectedShape.onCommand || ""}
+										onChange={(e) => onUpdateShape({ onCommand: e.target.value })}
+										placeholder='ESP32 command when ON'
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Off Command</label>
+									<input
+										value={selectedShape.offCommand || ""}
+										onChange={(e) => onUpdateShape({ offCommand: e.target.value })}
+										placeholder='ESP32 command when OFF'
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+							</>
+						)}
+
+						{selectedShape.widgetKind === "progress" && (
+							<>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Progress Label</label>
+									<input
+										value={selectedShape.label || "Progress"}
+										onChange={(e) => onUpdateShape({ label: e.target.value })}
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Data Key</label>
+									<select
+										value={selectedShape.dataKey || ""}
+										onChange={(e) => onUpdateShape({ dataKey: e.target.value })}
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'>
+										<option value="">Select data key</option>
+										{availableDataKeys.map((key) => (
+											<option key={key} value={key}>{key}</option>
+										))}
+									</select>
+								</div>
+							</>
+						)}
+
+						{selectedShape.widgetKind === "knob" && (
+							<>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Knob Label</label>
+									<input
+										value={selectedShape.label || "Knob"}
+										onChange={(e) => onUpdateShape({ label: e.target.value })}
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+								<div className='grid grid-cols-2 gap-2'>
+									<div>
+										<label className='text-xs text-gray-600 dark:text-gray-400'>Min Value</label>
+										<input
+											type='number'
+											value={selectedShape.minValue || 0}
+											onChange={(e) => onUpdateShape({ minValue: Number(e.target.value) || 0 })}
+											className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+										/>
+									</div>
+									<div>
+										<label className='text-xs text-gray-600 dark:text-gray-400'>Max Value</label>
+										<input
+											type='number'
+											value={selectedShape.maxValue || 100}
+											onChange={(e) => onUpdateShape({ maxValue: Number(e.target.value) || 100 })}
+											className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+										/>
+									</div>
+								</div>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Command Template</label>
+									<input
+										value={selectedShape.commandTemplate || ""}
+										onChange={(e) => onUpdateShape({ commandTemplate: e.target.value })}
+										placeholder='ESP32 command (use {value} for knob value)'
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+								<div>
+									<label className='text-xs text-gray-600 dark:text-gray-400'>Current Value</label>
+									<input
+										type='number'
+										min={selectedShape.minValue || 0}
+										max={selectedShape.maxValue || 100}
+										value={selectedShape.currentValue || 0}
+										onChange={(e) => {
+											const value = Number(e.target.value);
+											onUpdateShape({ currentValue: value });
+											// Send command to ESP32
+											if (selectedShape.deviceId && selectedShape.commandTemplate) {
+												const command = selectedShape.commandTemplate.replace("{value}", value);
+												// This would need to be passed from parent component
+												// For now, we'll just update the local state
+											}
+										}}
+										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+									/>
+								</div>
+							</>
+						)}
+
+						{selectedShape.widgetKind === "chart" && (
+							<div className='flex items-center gap-2'>
+								<input
+									id='showChart'
+									type='checkbox'
+									checked={!!selectedShape.showChart}
+									onChange={(e) => onUpdateShape({ showChart: e.target.checked })}
+									className='w-4 h-4'
+								/>
+								<label
+									htmlFor='showChart'
+									className='text-xs text-gray-600 dark:text-gray-400 select-none'>
+									Show chart inside
+								</label>
+							</div>
+						)}
 					</>
 				}
 
 				{/* Layer controls */}
 				<div className='flex items-center gap-2'>
-					<button
-						onClick={() => onMoveZ(1)}
-						className='px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-						title='Bring forward'>
-						<ArrowUp className='w-4 h-4' />
-					</button>
-					<button
-						onClick={() => onMoveZ(-1)}
-						className='px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-						title='Send backward'>
-						<ArrowDown className='w-4 h-4' />
-					</button>
 					<button
 						onClick={onMoveToFront}
 						className='px-2 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'

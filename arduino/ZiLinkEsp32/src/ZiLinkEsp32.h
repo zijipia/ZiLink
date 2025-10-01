@@ -12,6 +12,11 @@ class ZiLinkEsp32
 {
 public:
         ZiLinkEsp32();
+        ZiLinkEsp32(const char *deviceId, const char *serverHost, int serverPort);
+
+        // Initialization
+        void begin();
+        void begin(const char *deviceId, const char *serverHost, int serverPort);
 
         // HTTP API
         void setupHttp(const char *baseUrl, const char *deviceId, const char *token);
@@ -32,6 +37,10 @@ public:
         void createSlider(int value, const char *id);
         void createToggle(bool value, const char *id);
         void createProgress(int value, const char *id);
+
+        // Command handling
+        bool hasCommand();
+        String getCommand();
 
         void loop();
 
@@ -57,6 +66,10 @@ private:
         String _wsQueue[WS_QUEUE_SIZE];
         size_t _wsQHead = 0; // points to next item to pop
         size_t _wsQTail = 0; // points to next free slot
+
+        // Command handling
+        String _pendingCommand = "";
+        bool _hasPendingCommand = false;
 };
 
 #endif

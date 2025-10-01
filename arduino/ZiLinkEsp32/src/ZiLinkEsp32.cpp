@@ -2,6 +2,11 @@
 
 ZiLinkEsp32::ZiLinkEsp32() : _mqtt(_wifi) {}
 
+ZiLinkEsp32::ZiLinkEsp32(const char *deviceId, const char *serverHost, int serverPort) : _mqtt(_wifi) {
+  _deviceId = String(deviceId);
+  _baseUrl = "http://" + String(serverHost) + ":" + String(serverPort);
+}
+
 void ZiLinkEsp32::setupHttp(const char *baseUrl, const char *deviceId, const char *token)
 {
   _baseUrl = baseUrl;
@@ -96,8 +101,9 @@ void ZiLinkEsp32::setupWebSocket(const char *host, uint16_t port, const char *pa
           } else if (msgType && strcmp(msgType, "command") == 0) {
             const char* command = doc["data"]["command"];
             Serial.printf("Received command: %s\n", command);
-            // Call user callback or update local state
-            // Example: if (strcmp(command, "toggle") == 0) digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+            // Store command for hasCommand()/getCommand()
+            _pendingCommand = String(command);
+            _hasPendingCommand = true;
           }
         }
         break;
@@ -223,6 +229,29 @@ void ZiLinkEsp32::createProgress(int value, const char *id)
   String payload =
       "{\"type\":\"progress\",\"id\":\"" + String(id) + "\",\"value\":" + String(value) + "}";
   sendComponentData(payload);
+}
+
+void ZiLinkEsp32::begin() {
+  // Default initialization - setup WebSocket connection
+  setupWebSocket(_baseUrl.substring(7).c_str(), 8080, "/ws", _deviceId.c_str(), _token.c_str());
+}
+
+void ZiLinkEsp32::begin(const char *deviceId, const char *serverHost, int serverPort) {
+  _deviceId = String(deviceId);
+  _baseUrl = "http://" + String(serverHost) + ":" + String(serverPort);
+  setupWebSocket(serverHost, serverPort, "/ws", deviceId, _token.c_str());
+}
+
+bool ZiLinkEsp32::hasCommand() {
+  return _hasPendingCommand;
+}
+
+String ZiLinkEsp32::getCommand() {
+  if (_hasPendingCommand) {
+    _hasPendingCommand = false;
+    return _pendingCommand;
+  }
+  return "";
 }
 
 void ZiLinkEsp32::loop()

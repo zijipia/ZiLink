@@ -9,7 +9,33 @@ import DesignerToolbar from "@/components/designer/DesignerToolbar";
 import CanvasToolbar from "@/components/designer/CanvasToolbar";
 import DesignerCanvas from "@/components/designer/DesignerCanvas";
 import PropertyPanel from "@/components/designer/PropertyPanel";
-import { Palette, Menu, LogOut, Undo, Redo, Save, Thermometer, Droplet, Gauge, Sun, Volume2, Activity } from "lucide-react";
+import WidgetPanel from "@/components/designer/WidgetPanel";
+import CodeGenerator from "@/components/designer/CodeGenerator";
+import DesignerGuide from "@/components/designer/DesignerGuide";
+import DesignerDataViewer from "@/components/designer/DesignerDataViewer";
+import {
+	Palette,
+	Menu,
+	LogOut,
+	Eye,
+	X,
+	Save,
+	Thermometer,
+	Droplet,
+	Gauge,
+	Sun,
+	Volume2,
+	Activity,
+	Trash2,
+	HelpCircle,
+	MousePointer,
+	ToggleLeft,
+	Settings2,
+	Power,
+	Zap,
+	Settings,
+	Monitor,
+} from "lucide-react";
 import apiService from "@/lib/api";
 import websocketService from "@/lib/websocket";
 import { toast } from "react-hot-toast";
@@ -31,11 +57,17 @@ const DesignerPage = () => {
 	const [dragging, setDragging] = useState(null);
 	const [pointerDown, setPointerDown] = useState(null);
 	const [ctxMenu, setCtxMenu] = useState(null);
+	const [showGuide, setShowGuide] = useState(false);
+	const [showDataViewer, setShowDataViewer] = useState(false);
 
 	// Device data
 	const [devices, setDevices] = useState([]);
 	const [defaultDeviceId, setDefaultDeviceId] = useState("");
 	const [latestByDevice, setLatestByDevice] = useState({});
+	const [seriesByKey, setSeriesByKey] = useState({});
+
+	// Widget tool IDs for drawing
+	const widgetToolIds = ["temperature", "humidity", "pressure", "light", "sound", "motion", "button", "chart"];
 
 	const canvasRef = useRef(null);
 
@@ -53,7 +85,6 @@ const DesignerPage = () => {
 	// const [dragging, setDragging] = useState(null); // { id, offsetX, offsetY }
 	const [resizing, setResizing] = useState(null); // { id, handle, startX, startY, x, y, w, h }
 	// const [latestByDevice, setLatestByDevice] = useState({}); // { [deviceId]: { sensorData, timestamp } }
-	const [seriesByKey, setSeriesByKey] = useState({}); // { `${deviceId}|${key}`: number[] }
 	// const [pointerDown, setPointerDown] = useState(null); // { id, x, y, t, moved }
 	const canvasBoxRef = useRef(null);
 	const [editingTextId, setEditingTextId] = useState(null);
@@ -77,30 +108,37 @@ const DesignerPage = () => {
 	};
 
 	const tools = [
-		// { id: "select", name: "Select", icon: Layout },
-		// { id: "rectangle", name: "Rectangle", icon: Square },
-		// { id: "circle", name: "Circle", icon: Circle },
-		// { id: "triangle", name: "Triangle", icon: Triangle },
-		// { id: "text", name: "Text", icon: Type },
-		// { id: "image", name: "Image", icon: Image },
-		// { id: "chart", name: "Chart", icon: BarChart3 },
-		// // Widget tools (can draw directly, not just from right panel)
-		// { id: "temperature", name: "Temperature", icon: Thermometer },
-		// { id: "humidity", name: "Humidity", icon: Droplet },
-		// { id: "pressure", name: "Pressure", icon: Gauge },
-		// { id: "light", name: "Light", icon: Sun },
-		// { id: "sound", name: "Sound", icon: Volume2 },
-		// { id: "motion", name: "Motion", icon: Activity },
-		// { id: "button", name: "Button", icon: MousePointer },
+		{ id: "select", name: "Select", icon: "Layout" },
+		{ id: "rectangle", name: "Rectangle", icon: "Square" },
+		{ id: "circle", name: "Circle", icon: "Circle" },
+		{ id: "triangle", name: "Triangle", icon: "Triangle" },
+		{ id: "text", name: "Text", icon: "Type" },
+		{ id: "image", name: "Image", icon: "Image" },
+		{ id: "chart", name: "Chart", icon: "BarChart3" },
+		// Widget tools (can draw directly, not just from right panel)
+		{ id: "temperature", name: "Temperature", icon: "Thermometer" },
+		{ id: "humidity", name: "Humidity", icon: "Droplet" },
+		{ id: "pressure", name: "Pressure", icon: "Gauge" },
+		{ id: "light", name: "Light", icon: "Sun" },
+		{ id: "sound", name: "Sound", icon: "Volume2" },
+		{ id: "motion", name: "Motion", icon: "Activity" },
+		{ id: "button", name: "Button", icon: "MousePointer" },
 	];
 
 	const widgets = [
-		// { id: "temperature", name: "Temperature", icon: Thermometer, color: "blue" },
-		// { id: "humidity", name: "Humidity", icon: Droplet, color: "green" },
-		// { id: "pressure", name: "Pressure", icon: Gauge, color: "purple" },
-		// { id: "motion", name: "Motion", icon: Activity, color: "orange" },
-		// { id: "light", name: "Light", icon: Sun, color: "yellow" },
-		// { id: "sound", name: "Sound", icon: Volume2, color: "pink" },
+		{ id: "temperature", name: "Temperature", icon: Thermometer, color: "blue" },
+		{ id: "humidity", name: "Humidity", icon: Droplet, color: "green" },
+		{ id: "pressure", name: "Pressure", icon: Gauge, color: "purple" },
+		{ id: "motion", name: "Motion", icon: Activity, color: "orange" },
+		{ id: "light", name: "Light", icon: Sun, color: "yellow" },
+		{ id: "sound", name: "Sound", icon: Volume2, color: "pink" },
+		{ id: "button", name: "Button", icon: MousePointer, color: "gray" },
+		{ id: "toggle", name: "Toggle", icon: ToggleLeft, color: "indigo" },
+		{ id: "slider", name: "Slider", icon: Settings2, color: "teal" },
+		{ id: "switch", name: "Switch", icon: Power, color: "red" },
+		{ id: "progress", name: "Progress", icon: Zap, color: "emerald" },
+		{ id: "knob", name: "Knob", icon: Settings, color: "amber" },
+		{ id: "chart", name: "Chart", icon: Monitor, color: "cyan" },
 	];
 
 	useEffect(() => {
@@ -118,7 +156,7 @@ const DesignerPage = () => {
 	// Handle sidebar visibility based on screen size
 	useEffect(() => {
 		const handleResize = () => {
-			if (window.innerWidth >= 1024) {
+			if (window.innerWidth >= 1200) {
 				setSidebarOpen(true);
 			} else {
 				setSidebarOpen(false);
@@ -130,14 +168,25 @@ const DesignerPage = () => {
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
 
+	// Auto-save functionality
+	useEffect(() => {
+		const autoSave = () => {
+			if (shapes.length > 0) {
+				const layout = { shapes, timestamp: Date.now() };
+				localStorage.setItem("designer-layout", JSON.stringify(layout));
+			}
+		};
+
+		const interval = setInterval(autoSave, 30000); // Auto-save every 30 seconds
+		return () => clearInterval(interval);
+	}, [shapes]);
+
 	const scale = canvasZoom / 100;
 
 	const titleCase = (txt) => {
 		if (!txt || typeof txt !== "string") return "Widget";
 		return txt.charAt(0).toUpperCase() + txt.slice(1);
 	};
-
-	const widgetToolIds = ["temperature", "humidity", "pressure", "light", "sound", "motion", "chart", "button"];
 
 	const getWidgetMeta = (kindRaw) => {
 		const kind = (kindRaw || "widget").toLowerCase();
@@ -217,6 +266,16 @@ const DesignerPage = () => {
 		}
 	};
 
+	const handleClearCanvas = () => {
+		if (shapes.length > 0) {
+			if (confirm("Are you sure you want to clear all widgets?")) {
+				setShapes([]);
+				setSelectedId(null);
+				toast.success("Canvas cleared!");
+			}
+		}
+	};
+
 	// WebSocket subscriptions for live values of used devices
 	useEffect(() => {
 		const onDeviceData = (msg) => {
@@ -273,13 +332,37 @@ const DesignerPage = () => {
 			websocketService.off("device_batch_data", onDeviceBatchData);
 		};
 	}, [shapes, defaultDeviceId]);
-	// Keyboard shortcuts: delete, duplicate, save
+	// Keyboard shortcuts: delete, duplicate, save, tools
 	useEffect(() => {
 		const onKeyDown = (e) => {
 			if (editingTextId) {
 				if (e.key === "Escape") setEditingTextId(null);
 				return;
 			}
+
+			// Tool shortcuts
+			if (e.key === "v" || e.key === "V") {
+				e.preventDefault();
+				setSelectedTool("select");
+				return;
+			}
+			if (e.key === "r" || e.key === "R") {
+				e.preventDefault();
+				setSelectedTool("rectangle");
+				return;
+			}
+			if (e.key === "c" || e.key === "C") {
+				e.preventDefault();
+				setSelectedTool("circle");
+				return;
+			}
+			if (e.key === "t" || e.key === "T") {
+				e.preventDefault();
+				setSelectedTool("text");
+				return;
+			}
+
+			// Action shortcuts
 			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
 				e.preventDefault();
 				handleSaveLayout();
@@ -305,11 +388,19 @@ const DesignerPage = () => {
 				setCtxMenu(null);
 				setDragging(null);
 				setResizing(null);
+				setSelectedId(null);
+			}
+
+			// Sidebar toggle
+			if ((e.ctrlKey || e.metaKey) && e.key === "b") {
+				e.preventDefault();
+				setSidebarOpen(!sidebarOpen);
+				return;
 			}
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [selectedId, shapes, editingTextId]);
+	}, [selectedId, shapes, editingTextId, sidebarOpen]);
 
 	const formatValue = (deviceId, key) => {
 		if (!deviceId || !key) return { text: "--", unit: "" };
@@ -347,69 +438,44 @@ const DesignerPage = () => {
 		const el = canvasRef.current;
 		if (!el) return { x: 0, y: 0 };
 		const rect = el.getBoundingClientRect();
+		console.log("getCanvasPoint:", {
+			scale,
+			canvasZoom,
+			clientX: e.clientX,
+			clientY: e.clientY,
+			rectLeft: rect.left,
+			rectTop: rect.top,
+		});
 		const x = (e.clientX - rect.left) / scale;
 		const y = (e.clientY - rect.top) / scale;
 		return { x, y };
 	};
 
-	// Canvas interaction handlers
-	const handlePointerDown = (e) => {
-		if (selectedTool === "select") return;
-
-		const rect = canvasRef.current?.getBoundingClientRect();
-		if (!rect) return;
-
-		const x = (e.clientX - rect.left) * (100 / canvasZoom);
-		const y = (e.clientY - rect.top) * (100 / canvasZoom);
-
-		setIsDrawing(true);
-		setDraft({ type: selectedTool, startX: x, startY: y, x, y, w: 0, h: 0 });
-	};
-
-	const handlePointerMove = (e) => {
-		if (!isDrawing || !draft) return;
-
-		const rect = canvasRef.current?.getBoundingClientRect();
-		if (!rect) return;
-
-		const x = (e.clientX - rect.left) * (100 / canvasZoom);
-		const y = (e.clientY - rect.top) * (100 / canvasZoom);
-
-		setDraft((prev) => ({
-			...prev,
-			x: Math.min(prev.startX, x),
-			y: Math.min(prev.startY, y),
-			w: Math.abs(x - prev.startX),
-			h: Math.abs(y - prev.startY),
-		}));
-	};
-
-	const handlePointerUp = () => {
-		if (!isDrawing || !draft) return;
-
-		if (draft.w > 10 && draft.h > 10) {
-			const newShape = {
-				id: crypto.randomUUID(),
-				type: draft.type,
-				x: draft.x,
-				y: draft.y,
-				w: draft.w,
-				h: draft.h,
-				deviceId: defaultDeviceId,
-				zIndex: shapes.length,
-			};
-
-			setShapes((prev) => [...prev, newShape]);
-		}
-
-		setIsDrawing(false);
-		setDraft(null);
-		setSelectedTool("select");
-	};
-
 	const handleShapeClick = (e, shapeId) => {
 		e.stopPropagation();
 		setSelectedId(shapeId);
+
+		// Start dragging if in select mode
+		console.log("Shape clicked, selectedTool:", selectedTool);
+		if (selectedTool === "select") {
+			const shape = shapes.find((s) => s.id === shapeId);
+			if (shape) {
+				const { x, y } = getCanvasPoint(e);
+				console.log("Starting drag:", { shapeId, x, y, shapeX: shape.x, shapeY: shape.y });
+				setDragging({
+					id: shapeId,
+					offsetX: x - shape.x,
+					offsetY: y - shape.y,
+				});
+				setPointerDown({
+					id: shapeId,
+					x,
+					y,
+					t: Date.now(),
+					moved: false,
+				});
+			}
+		}
 	};
 
 	const handleDeleteShape = (shapeId) => {
@@ -454,184 +520,214 @@ const DesignerPage = () => {
 	}, [latestByDevice]);
 
 	const handleCanvasMouseDown = (e) => {
-		// if (ctxMenu) setCtxMenu(null);
-		// // Selection mode: click empty space to clear selection
-		// if (selectedTool === "select") {
-		// 	setSelectedId(null);
-		// 	return;
-		// }
-		// if (selectedTool === "text") {
-		// 	const { x, y } = getCanvasPoint(e);
-		// 	const newShape = {
-		// 		id: crypto.randomUUID(),
-		// 		type: "text",
-		// 		x,
-		// 		y,
-		// 		text: "Text",
-		// 		color: "#ffffff",
-		// 		fontSize: 14,
-		// 	};
-		// 	setShapes((s) => [...s, newShape]);
-		// 	return;
-		// }
-		// if (["rectangle", "circle", "triangle"].includes(selectedTool) || widgetToolIds.includes(selectedTool)) {
-		// 	const { x, y } = getCanvasPoint(e);
-		// 	setIsDrawing(true);
-		// 	if (widgetToolIds.includes(selectedTool)) {
-		// 		const dk = selectedTool === "chart" ? "temperature" : selectedTool;
-		// 		setDraft({
-		// 			type: "rectangle",
-		// 			widgetKind: selectedTool,
-		// 			deviceId: defaultDeviceId || devices[0]?.deviceId || "",
-		// 			dataKey: dk,
-		// 			startX: x,
-		// 			startY: y,
-		// 			x,
-		// 			y,
-		// 			w: 0,
-		// 			h: 0,
-		// 		});
-		// 	} else {
-		// 		setDraft({ type: selectedTool, startX: x, startY: y, x, y, w: 0, h: 0 });
-		// 	}
-		// }
+		if (ctxMenu) setCtxMenu(null);
+
+		// Selection mode: click empty space to clear selection
+		if (selectedTool === "select") {
+			setSelectedId(null);
+			return;
+		}
+
+		// Only create shapes if not clicking on existing shapes
+		if (e.target === canvasRef.current || e.target.tagName === "svg") {
+			if (selectedTool === "text") {
+				const { x, y } = getCanvasPoint(e);
+				const newShape = {
+					id: crypto.randomUUID(),
+					type: "text",
+					x,
+					y,
+					text: "Text",
+					color: "#ffffff",
+					fontSize: 14,
+				};
+				setShapes((s) => [...s, newShape]);
+				return;
+			}
+			if (["rectangle", "circle", "triangle"].includes(selectedTool)) {
+				const { x, y } = getCanvasPoint(e);
+				setIsDrawing(true);
+				setDraft({ type: selectedTool, startX: x, startY: y, x, y, w: 0, h: 0 });
+			} else if (widgetToolIds.includes(selectedTool)) {
+				const { x, y } = getCanvasPoint(e);
+				setIsDrawing(true);
+				const dk = selectedTool === "chart" ? "temperature" : selectedTool;
+				setDraft({
+					type: "rectangle",
+					widgetKind: selectedTool,
+					deviceId: defaultDeviceId || devices[0]?.deviceId || "",
+					dataKey: dk,
+					startX: x,
+					startY: y,
+					x,
+					y,
+					w: 0,
+					h: 0,
+				});
+			}
+		}
 	};
 
 	const handleCanvasMouseMove = (e) => {
-		// const { x, y } = getCanvasPoint(e);
-		// if (pointerDown?.id && !pointerDown.moved) {
-		// 	const dx = x - pointerDown.x;
-		// 	const dy = y - pointerDown.y;
-		// 	if (Math.hypot(dx, dy) > 3) setPointerDown({ ...pointerDown, moved: true });
-		// }
-		// if (resizing?.id) {
-		// 	const dx = x - resizing.startX;
-		// 	const dy = y - resizing.startY;
-		// 	const minW = 20;
-		// 	const minH = 20;
-		// 	let nx = resizing.x;
-		// 	let ny = resizing.y;
-		// 	let nw = resizing.w;
-		// 	let nh = resizing.h;
-		// 	switch (resizing.handle) {
-		// 		case "e":
-		// 			nw = resizing.w + dx;
-		// 			break;
-		// 		case "w":
-		// 			nx = resizing.x + dx;
-		// 			nw = resizing.w - dx;
-		// 			break;
-		// 		case "s":
-		// 			nh = resizing.h + dy;
-		// 			break;
-		// 		case "n":
-		// 			ny = resizing.y + dy;
-		// 			nh = resizing.h - dy;
-		// 			break;
-		// 		case "se":
-		// 			nw = resizing.w + dx;
-		// 			nh = resizing.h + dy;
-		// 			break;
-		// 		case "ne":
-		// 			ny = resizing.y + dy;
-		// 			nh = resizing.h - dy;
-		// 			nw = resizing.w + dx;
-		// 			break;
-		// 		case "sw":
-		// 			nx = resizing.x + dx;
-		// 			nw = resizing.w - dx;
-		// 			nh = resizing.h + dy;
-		// 			break;
-		// 		case "nw":
-		// 			nx = resizing.x + dx;
-		// 			ny = resizing.y + dy;
-		// 			nw = resizing.w - dx;
-		// 			nh = resizing.h - dy;
-		// 			break;
-		// 		default:
-		// 			break;
-		// 	}
-		// 	// Clamp to minimums and adjust origin if needed
-		// 	if (nw < minW) {
-		// 		if (resizing.handle.includes("w")) {
-		// 			nx = resizing.x + (resizing.w - minW);
-		// 		}
-		// 		nw = minW;
-		// 	}
-		// 	if (nh < minH) {
-		// 		if (resizing.handle.includes("n")) {
-		// 			ny = resizing.y + (resizing.h - minH);
-		// 		}
-		// 		nh = minH;
-		// 	}
-		// 	setShapes((prev) =>
-		// 		prev.map((s) => (s.id === resizing.id ? { ...s, x: nx, y: ny, w: Math.max(minW, nw), h: Math.max(minH, nh) } : s)),
-		// 	);
-		// 	return;
-		// }
-		// if (dragging?.id) {
-		// 	// Move selected shape
-		// 	const nx = x - dragging.offsetX;
-		// 	const ny = y - dragging.offsetY;
-		// 	setShapes((prev) => prev.map((s) => (s.id === dragging.id ? { ...s, x: nx, y: ny } : s)));
-		// 	return;
-		// }
-		// if (isDrawing && draft) {
-		// 	const r = rectFromPoints(draft.startX, draft.startY, x, y);
-		// 	setDraft({ ...draft, ...r });
-		// }
+		const { x, y } = getCanvasPoint(e);
+		if (pointerDown?.id && !pointerDown.moved) {
+			const dx = x - pointerDown.x;
+			const dy = y - pointerDown.y;
+			if (Math.hypot(dx, dy) > 3) setPointerDown({ ...pointerDown, moved: true });
+		}
+		if (resizing?.id) {
+			const dx = x - resizing.startX;
+			const dy = y - resizing.startY;
+			const minW = 20;
+			const minH = 20;
+			let nx = resizing.x;
+			let ny = resizing.y;
+			let nw = resizing.w;
+			let nh = resizing.h;
+			switch (resizing.handle) {
+				case "e":
+					nw = resizing.w + dx;
+					break;
+				case "w":
+					nx = resizing.x + dx;
+					nw = resizing.w - dx;
+					break;
+				case "s":
+					nh = resizing.h + dy;
+					break;
+				case "n":
+					ny = resizing.y + dy;
+					nh = resizing.h - dy;
+					break;
+				case "se":
+					nw = resizing.w + dx;
+					nh = resizing.h + dy;
+					break;
+				case "ne":
+					ny = resizing.y + dy;
+					nh = resizing.h - dy;
+					nw = resizing.w + dx;
+					break;
+				case "sw":
+					nx = resizing.x + dx;
+					nw = resizing.w - dx;
+					nh = resizing.h + dy;
+					break;
+				case "nw":
+					nx = resizing.x + dx;
+					ny = resizing.y + dy;
+					nw = resizing.w - dx;
+					nh = resizing.h - dy;
+					break;
+				default:
+					break;
+			}
+			// Clamp to minimums and adjust origin if needed
+			if (nw < minW) {
+				if (resizing.handle.includes("w")) {
+					nx = resizing.x + (resizing.w - minW);
+				}
+				nw = minW;
+			}
+			if (nh < minH) {
+				if (resizing.handle.includes("n")) {
+					ny = resizing.y + (resizing.h - minH);
+				}
+				nh = minH;
+			}
+			setShapes((prev) =>
+				prev.map((s) => (s.id === resizing.id ? { ...s, x: nx, y: ny, w: Math.max(minW, nw), h: Math.max(minH, nh) } : s)),
+			);
+			return;
+		}
+		if (dragging?.id) {
+			// Move selected shape
+			const nx = x - dragging.offsetX;
+			const ny = y - dragging.offsetY;
+			console.log("Dragging:", { draggingId: dragging.id, x, y, nx, ny });
+			setShapes((prev) => prev.map((s) => (s.id === dragging.id ? { ...s, x: nx, y: ny } : s)));
+			return;
+		}
+		if (isDrawing && draft) {
+			const r = rectFromPoints(draft.startX, draft.startY, x, y);
+			setDraft({ ...draft, ...r });
+		}
 	};
 
 	const handleCanvasMouseUp = () => {
-		// Handle button click (no drag)
-		// if (pointerDown?.id) {
-		// 	const shape = shapes.find((s) => s.id === pointerDown.id);
-		// 	if (shape?.widgetKind === "button" && !pointerDown.moved && Date.now() - pointerDown.t < 600) {
-		// 		pressButton(shape);
-		// 	}
-		// 	setPointerDown(null);
-		// }
-		// if (resizing?.id) {
-		// 	setResizing(null);
-		// 	return;
-		// }
-		// if (dragging?.id) {
-		// 	setDragging(null);
-		// 	return;
-		// }
-		// if (isDrawing && draft) {
-		// 	setIsDrawing(false);
-		// 	const { x, y, w, h, type } = draft;
-		// 	if (w < 4 && h < 4) {
-		// 		setDraft(null);
-		// 		return;
-		// 	}
-		// 	const newShape = {
-		// 		id: crypto.randomUUID(),
-		// 		type,
-		// 		x,
-		// 		y,
-		// 		w,
-		// 		h,
-		// 		...(draft.widgetKind ? { widgetKind: draft.widgetKind, deviceId: draft.deviceId, dataKey: draft.dataKey } : {}),
-		// 	};
-		// 	setShapes((prev) => [...prev, newShape]);
-		// 	setDraft(null);
-		// }
+		// Handle widget interactions (no drag)
+		if (pointerDown?.id) {
+			const shape = shapes.find((s) => s.id === pointerDown.id);
+			if (shape && !pointerDown.moved && Date.now() - pointerDown.t < 600) {
+				switch (shape.widgetKind) {
+					case "button":
+						pressButton(shape);
+						break;
+					case "toggle":
+						handleToggleClick(shape);
+						break;
+					case "switch":
+						handleSwitchClick(shape);
+						break;
+					case "slider":
+						handleSliderClick(shape);
+						break;
+					case "knob":
+						handleKnobClick(shape);
+						break;
+				}
+			}
+			setPointerDown(null);
+		}
+		if (resizing?.id) {
+			setResizing(null);
+			return;
+		}
+		if (dragging?.id) {
+			setDragging(null);
+			return;
+		}
+		if (isDrawing && draft) {
+			setIsDrawing(false);
+			const { x, y, w, h, type } = draft;
+			if (w < 4 && h < 4) {
+				setDraft(null);
+				return;
+			}
+			const newShape = {
+				id: crypto.randomUUID(),
+				type,
+				x,
+				y,
+				w,
+				h,
+				zIndex: shapes.length,
+				...(draft.widgetKind ?
+					{
+						widgetKind: draft.widgetKind,
+						deviceId: draft.deviceId,
+						dataKey: draft.dataKey,
+					}
+				:	{}),
+			};
+			setShapes((prev) => [...prev, newShape]);
+			setDraft(null);
+			setSelectedTool("select"); // Switch back to select tool after drawing
+		}
 	};
 
 	const handleCanvasMouseLeave = () => {
-		// if (dragging?.id) setDragging(null);
-		// if (resizing?.id) setResizing(null);
-		// if (isDrawing) setIsDrawing(false);
-		// setDraft(null);
+		if (dragging?.id) setDragging(null);
+		if (resizing?.id) setResizing(null);
+		if (isDrawing) setIsDrawing(false);
+		setDraft(null);
 	};
 
 	const startResize = (shape, handle, e) => {
-		// e.stopPropagation();
-		// const p = getCanvasPoint(e);
-		// setSelectedId(shape.id);
-		// setResizing({ id: shape.id, handle, startX: p.x, startY: p.y, x: shape.x, y: shape.y, w: shape.w, h: shape.h });
+		e.stopPropagation();
+		const p = getCanvasPoint(e);
+		setSelectedId(shape.id);
+		setResizing({ id: shape.id, handle, startX: p.x, startY: p.y, x: shape.x, y: shape.y, w: shape.w, h: shape.h });
 	};
 
 	const handleLogout = async () => {
@@ -651,60 +747,230 @@ const DesignerPage = () => {
 	// };
 
 	const pressButton = (shape) => {
-		// const isToggle = (shape.buttonMode || "momentary") === "toggle";
-		// if (isToggle) {
-		// 	const nextState = !shape.toggled;
-		// 	setShapes((prev) => prev.map((s) => (s.id === shape.id ? { ...s, toggled: nextState } : s)));
-		// 	try {
-		// 		if (shape.deviceId) {
-		// 			const payload = shape[nextState ? "onCommand" : "offCommand"] || {
-		// 				type: "ui_button",
-		// 				id: shape.id,
-		// 				action: "toggle",
-		// 				state: nextState,
-		// 			};
-		// 			websocketService.sendDeviceCommand(shape.deviceId, payload);
-		// 		}
-		// 	} catch (e) {
-		// 		console.error("Button toggle command failed", e);
-		// 	}
-		// 	return;
-		// }
-		// // Momentary
-		// setShapes((prev) => prev.map((s) => (s.id === shape.id ? { ...s, pressed: true } : s)));
-		// setTimeout(() => {
-		// 	setShapes((prev) => prev.map((s) => (s.id === shape.id ? { ...s, pressed: false } : s)));
-		// }, 150);
-		// try {
-		// 	if (shape.deviceId) {
-		// 		const payload = shape.command || { type: "ui_button", id: shape.id, action: "press", label: shape.label || "Button" };
-		// 		websocketService.sendDeviceCommand(shape.deviceId, payload);
-		// 	}
-		// } catch (e) {
-		// 	console.error("Button command failed", e);
-		// }
+		const isToggle = (shape.buttonMode || "momentary") === "toggle";
+		if (isToggle) {
+			const nextState = !shape.toggled;
+			setShapes((prev) => prev.map((s) => (s.id === shape.id ? { ...s, toggled: nextState } : s)));
+			try {
+				if (shape.deviceId) {
+					const payload = shape[nextState ? "onCommand" : "offCommand"] || {
+						type: "ui_button",
+						id: shape.id,
+						action: "toggle",
+						state: nextState,
+					};
+					websocketService.sendDeviceCommand(shape.deviceId, payload);
+				}
+			} catch (e) {
+				console.error("Button toggle command failed", e);
+			}
+			return;
+		}
+		// Momentary
+		setShapes((prev) => prev.map((s) => (s.id === shape.id ? { ...s, pressed: true } : s)));
+		setTimeout(() => {
+			setShapes((prev) => prev.map((s) => (s.id === shape.id ? { ...s, pressed: false } : s)));
+		}, 150);
+		try {
+			if (shape.deviceId) {
+				const payload = shape.command || { type: "ui_button", id: shape.id, action: "press", label: shape.label || "Button" };
+				websocketService.sendDeviceCommand(shape.deviceId, payload);
+			}
+		} catch (e) {
+			console.error("Button command failed", e);
+		}
+	};
+
+	const handleToggleClick = (shape) => {
+		const nextState = !shape.toggled;
+		setShapes((prev) => prev.map((s) => (s.id === shape.id ? { ...s, toggled: nextState } : s)));
+		try {
+			if (shape.deviceId) {
+				const command = nextState ? shape.onCommand : shape.offCommand;
+				if (command) {
+					const payload = {
+						type: "ui_toggle",
+						id: shape.id,
+						action: "toggle",
+						state: nextState,
+						command: command,
+					};
+					websocketService.sendDeviceCommand(shape.deviceId, payload);
+				}
+			}
+		} catch (e) {
+			console.error("Toggle command failed", e);
+		}
+	};
+
+	const handleSwitchClick = (shape) => {
+		const nextState = !shape.switched;
+		setShapes((prev) => prev.map((s) => (s.id === shape.id ? { ...s, switched: nextState } : s)));
+		try {
+			if (shape.deviceId) {
+				const command = nextState ? shape.onCommand : shape.offCommand;
+				if (command) {
+					const payload = {
+						type: "ui_switch",
+						id: shape.id,
+						action: "switch",
+						state: nextState,
+						command: command,
+					};
+					websocketService.sendDeviceCommand(shape.deviceId, payload);
+				}
+			}
+		} catch (e) {
+			console.error("Switch command failed", e);
+		}
+	};
+
+	const handleSliderClick = (shape) => {
+		// For slider, we'll implement value setting through property panel
+		// This could be enhanced with drag-to-adjust functionality
+		toast("Use property panel to set slider value");
+	};
+
+	const handleKnobClick = (shape) => {
+		// For knob, we'll implement value setting through property panel
+		// This could be enhanced with drag-to-adjust functionality
+		toast("Use property panel to set knob value");
+	};
+
+	const sendControlCommand = (shape, value) => {
+		try {
+			if (shape.deviceId) {
+				let payload;
+				switch (shape.widgetKind) {
+					case "slider":
+						payload = {
+							type: "ui_slider",
+							id: shape.id,
+							action: "set_value",
+							value: value,
+							command: shape.commandTemplate?.replace("{value}", value) || "",
+						};
+						break;
+					case "knob":
+						payload = {
+							type: "ui_knob",
+							id: shape.id,
+							action: "set_value",
+							value: value,
+							command: shape.commandTemplate?.replace("{value}", value) || "",
+						};
+						break;
+					default:
+						return;
+				}
+				websocketService.sendDeviceCommand(shape.deviceId, payload);
+			}
+		} catch (e) {
+			console.error("Control command failed", e);
+		}
 	};
 
 	const addWidget = (widgetId) => {
-		// const size = { w: 160, h: 90 };
-		// const pos = { x: 60 + (shapes.length % 6) * 12, y: 60 + (shapes.length % 6) * 12 };
-		// const base = {
-		// 	id: crypto.randomUUID(),
-		// 	type: "rectangle",
-		// 	...pos,
-		// 	...size,
-		// 	widgetKind: widgetId,
-		// 	deviceId: defaultDeviceId || devices[0]?.deviceId || "",
-		// 	color: "#93c5fd",
-		// };
-		// const newShape =
-		// 	widgetId === "button" ?
-		// 		{ ...base, label: "Button", command: "press", dataKey: undefined, buttonMode: "momentary", toggled: false }
-		// 	: widgetId === "chart" ? { ...base, dataKey: "temperature", showChart: true }
-		// 	: { ...base, dataKey: widgetId };
-		// setShapes((prev) => [...prev, newShape]);
-		// setSelectedId(newShape.id);
-		// toast.success(`Added widget: ${widgetId}`);
+		const size = { w: 160, h: 90 };
+		// Calculate position to avoid overlapping
+		const gridSize = 20;
+		const cols = Math.floor(800 / (size.w + gridSize));
+		const row = Math.floor(shapes.length / cols);
+		const col = shapes.length % cols;
+		const pos = {
+			x: 20 + col * (size.w + gridSize),
+			y: 20 + row * (size.h + gridSize),
+		};
+
+		const base = {
+			id: crypto.randomUUID(),
+			type: "rectangle",
+			...pos,
+			...size,
+			widgetKind: widgetId,
+			deviceId: defaultDeviceId || devices[0]?.deviceId || "",
+			color: "#93c5fd",
+			zIndex: shapes.length,
+		};
+
+		let newShape;
+		switch (widgetId) {
+			case "button":
+				newShape = {
+					...base,
+					label: "Button",
+					command: "press",
+					dataKey: undefined,
+					buttonMode: "momentary",
+					toggled: false,
+					pressed: false,
+				};
+				break;
+			case "toggle":
+				newShape = {
+					...base,
+					label: "Toggle",
+					dataKey: undefined,
+					toggled: false,
+					onCommand: "",
+					offCommand: "",
+				};
+				break;
+			case "slider":
+				newShape = {
+					...base,
+					label: "Slider",
+					dataKey: undefined,
+					minValue: 0,
+					maxValue: 100,
+					currentValue: 0,
+					commandTemplate: "",
+				};
+				break;
+			case "switch":
+				newShape = {
+					...base,
+					label: "Switch",
+					dataKey: undefined,
+					switched: false,
+					onCommand: "",
+					offCommand: "",
+				};
+				break;
+			case "progress":
+				newShape = {
+					...base,
+					label: "Progress",
+					dataKey: "temperature",
+					minValue: 0,
+					maxValue: 100,
+				};
+				break;
+			case "knob":
+				newShape = {
+					...base,
+					label: "Knob",
+					dataKey: undefined,
+					minValue: 0,
+					maxValue: 100,
+					currentValue: 0,
+					commandTemplate: "",
+				};
+				break;
+			case "chart":
+				newShape = {
+					...base,
+					dataKey: "temperature",
+					showChart: true,
+				};
+				break;
+			default:
+				newShape = { ...base, dataKey: widgetId };
+		}
+
+		setShapes((prev) => [...prev, newShape]);
+		setSelectedId(newShape.id);
+		toast.success(`Added ${widgetId} widget`);
 	};
 
 	if (authLoading || isLoading) {
@@ -774,14 +1040,22 @@ const DesignerPage = () => {
 							</div>
 							<div className='flex items-center space-x-2'>
 								<button
-									onClick={() => window.history.back()}
+									onClick={() => setShowGuide(true)}
 									className='flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors'>
-									<Undo className='w-4 h-4' />
+									<HelpCircle className='w-4 h-4' />
+									<span className='hidden sm:inline'>Help</span>
 								</button>
 								<button
-									onClick={() => window.history.forward()}
+									onClick={() => setShowDataViewer(true)}
 									className='flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors'>
-									<Redo className='w-4 h-4' />
+									<Eye className='w-4 h-4' />
+									<span className='hidden sm:inline'>Live Data</span>
+								</button>
+								<button
+									onClick={handleClearCanvas}
+									className='flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors'>
+									<Trash2 className='w-4 h-4' />
+									<span className='hidden sm:inline'>Clear</span>
 								</button>
 								<button
 									onClick={handleSaveLayout}
@@ -801,14 +1075,55 @@ const DesignerPage = () => {
 				</div>
 
 				<div className='flex h-[calc(100vh-80px)]'>
-					{/* Left Toolbar */}
-					<DesignerToolbar
-						selectedTool={selectedTool}
-						onToolSelect={setSelectedTool}
-					/>
+					{/* Collapsible Left Sidebar */}
+					<div
+						className={`${sidebarOpen ? "w-80" : "w-16"} transition-all duration-300 flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700`}>
+						{/* Collapse Toggle */}
+						<div className='p-2 border-b border-gray-200 dark:border-gray-700'>
+							<button
+								onClick={() => setSidebarOpen(!sidebarOpen)}
+								className='w-full p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors'>
+								<Menu className='w-5 h-5 mx-auto' />
+							</button>
+						</div>
 
-					{/* Main Canvas Area */}
-					<div className='flex-1 flex flex-col'>
+						{sidebarOpen && (
+							<div className='flex-1 overflow-y-auto'>
+								{/* Tools Section */}
+								<div className='p-4 border-b border-gray-200 dark:border-gray-700'>
+									<h3 className='text-sm font-semibold text-gray-900 dark:text-white mb-3'>Tools</h3>
+									<DesignerToolbar
+										selectedTool={selectedTool}
+										onToolSelect={setSelectedTool}
+										horizontal={false}
+									/>
+								</div>
+
+								{/* Widgets Section */}
+								<div className='p-4 border-b border-gray-200 dark:border-gray-700'>
+									<h3 className='text-sm font-semibold text-gray-900 dark:text-white mb-3'>Widgets</h3>
+									<WidgetPanel
+										onAddWidget={addWidget}
+										compact={true}
+									/>
+								</div>
+
+								{/* Code Generator Section */}
+								<div className='p-4'>
+									<h3 className='text-sm font-semibold text-gray-900 dark:text-white mb-3'>Code Generator</h3>
+									<CodeGenerator
+										shapes={shapes}
+										devices={devices}
+										defaultDeviceId={defaultDeviceId}
+										compact={true}
+									/>
+								</div>
+							</div>
+						)}
+					</div>
+
+					{/* Main Canvas Area - Takes remaining space */}
+					<div className='flex-1 flex flex-col min-w-0'>
 						{/* Canvas Toolbar */}
 						<CanvasToolbar
 							showGrid={showGrid}
@@ -817,36 +1132,93 @@ const DesignerPage = () => {
 							onZoomChange={setCanvasZoom}
 						/>
 
-						{/* Canvas */}
-						<DesignerCanvas
-							ref={canvasRef}
-							shapes={shapes}
-							draft={draft}
-							showGrid={showGrid}
-							canvasZoom={canvasZoom}
-							selectedId={selectedId}
-							selectedTool={selectedTool}
-							onPointerDown={handlePointerDown}
-							onPointerMove={handlePointerMove}
-							onPointerUp={handlePointerUp}
-							onContextMenu={handleContextMenu}
-							onShapeClick={handleShapeClick}
-							onDeleteShape={handleDeleteShape}
-						/>
+						{/* Canvas - Full height */}
+						<div className='flex-1 relative'>
+							<DesignerCanvas
+								ref={canvasRef}
+								shapes={shapes}
+								draft={draft}
+								showGrid={showGrid}
+								canvasZoom={canvasZoom}
+								selectedId={selectedId}
+								selectedTool={selectedTool}
+								onPointerDown={handleCanvasMouseDown}
+								onPointerMove={handleCanvasMouseMove}
+								onPointerUp={handleCanvasMouseUp}
+								onContextMenu={handleContextMenu}
+								onShapeClick={handleShapeClick}
+								onDeleteShape={handleDeleteShape}
+								onResize={startResize}
+								latestByDevice={latestByDevice}
+								formatValue={formatValue}
+								getSeries={getSeries}
+								fullSize={true}
+							/>
+
+							{/* Status Bar */}
+							<div className='absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-2 flex items-center justify-between text-sm text-gray-600 dark:text-gray-400'>
+								<div className='flex items-center space-x-4'>
+									<span>Widgets: {shapes.length}</span>
+									<span>Tool: {selectedTool}</span>
+									<span>Zoom: {canvasZoom}%</span>
+									{selectedShape && <span>Selected: {selectedShape.widgetKind || selectedShape.type}</span>}
+								</div>
+								<div className='flex items-center space-x-4'>
+									<span className='text-xs'>Shortcuts: V=Select, R=Rectangle, C=Circle, T=Text, Ctrl+B=Toggle Sidebar</span>
+								</div>
+							</div>
+						</div>
 					</div>
 
-					{/* Right Property Panel */}
-					<PropertyPanel
-						selectedShape={selectedShape}
-						devices={devices}
-						defaultDeviceId={defaultDeviceId}
-						availableDataKeys={availableDataKeys}
-						onUpdateShape={updateSelectedShape}
-						onMoveToFront={moveSelectedToFront}
-						onMoveToBack={moveSelectedToBack}
-					/>
+					{/* Collapsible Right Property Panel */}
+					<div
+						className={`${sidebarOpen ? "w-80" : "w-0"} transition-all duration-300 overflow-hidden bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700`}>
+						{sidebarOpen && (
+							<div className='h-full overflow-y-auto'>
+								<PropertyPanel
+									selectedShape={selectedShape}
+									devices={devices}
+									defaultDeviceId={defaultDeviceId}
+									availableDataKeys={availableDataKeys}
+									onUpdateShape={updateSelectedShape}
+									onMoveToFront={moveSelectedToFront}
+									onMoveToBack={moveSelectedToBack}
+									fullSize={true}
+								/>
+							</div>
+						)}
+					</div>
 				</div>
 			</main>
+
+			{/* Designer Guide Modal */}
+			<DesignerGuide
+				isOpen={showGuide}
+				onClose={() => setShowGuide(false)}
+			/>
+
+			{/* Designer Data Viewer Modal */}
+			{showDataViewer && (
+				<div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+					<div className='bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col'>
+						<div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'>
+							<h3 className='text-lg font-semibold text-gray-900 dark:text-white'>Live Data Viewer</h3>
+							<button
+								onClick={() => setShowDataViewer(false)}
+								className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors'>
+								<X className='w-5 h-5 text-gray-500 dark:text-gray-400' />
+							</button>
+						</div>
+						<div className='flex-1 overflow-hidden'>
+							<DesignerDataViewer
+								shapes={shapes}
+								devices={devices}
+								defaultDeviceId={defaultDeviceId}
+							/>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };

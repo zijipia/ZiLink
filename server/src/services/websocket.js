@@ -192,7 +192,34 @@ class WebSocketManager {
 
 		console.log(`📊 Device data received from ${ws.deviceId}:`, sensorData);
 
-		// Here you would typically save the data to database
+		// Save device data to database
+		try {
+			const Device = (await import("../models/Device.js")).default;
+			const DeviceData = (await import("../models/DeviceData.js")).default;
+
+			const device = await Device.findOne({ deviceId: ws.deviceId });
+			if (device) {
+				const deviceData = new DeviceData({
+					device: device._id,
+					deviceId: ws.deviceId,
+					sensors: sensorData || [],
+					metadata: {
+						source: "websocket",
+						protocol: "WebSocket",
+					},
+				});
+
+				await deviceData.save();
+
+				// Update device status
+				await device.updateStatus({
+					isOnline: true,
+					lastSeen: new Date(),
+				});
+			}
+		} catch (error) {
+			console.error("❌ Error saving device data:", error);
+		}
 
 		// Broadcast to all web clients
 		this.broadcastToWebClients({
