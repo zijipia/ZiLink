@@ -1,1 +1,2 @@
+client/src/components/designer/PropertyPanel.jsx
 formatted_files.txt

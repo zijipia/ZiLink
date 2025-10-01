@@ -126,8 +126,8 @@ const PropertyPanel = ({
 										value={selectedShape.buttonMode || "momentary"}
 										onChange={(e) => onUpdateShape({ buttonMode: e.target.value })}
 										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'>
-										<option value="momentary">Momentary</option>
-										<option value="toggle">Toggle</option>
+										<option value='momentary'>Momentary</option>
+										<option value='toggle'>Toggle</option>
 									</select>
 								</div>
 								<div>
@@ -282,9 +282,13 @@ const PropertyPanel = ({
 										value={selectedShape.dataKey || ""}
 										onChange={(e) => onUpdateShape({ dataKey: e.target.value })}
 										className='w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white'>
-										<option value="">Select data key</option>
+										<option value=''>Select data key</option>
 										{availableDataKeys.map((key) => (
-											<option key={key} value={key}>{key}</option>
+											<option
+												key={key}
+												value={key}>
+												{key}
+											</option>
 										))}
 									</select>
 								</div>
