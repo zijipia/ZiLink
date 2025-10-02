@@ -11,6 +11,8 @@ import DesignerCanvas from "@/components/designer/DesignerCanvas";
 import PropertyPanel from "@/components/designer/PropertyPanel";
 import WidgetPanel from "@/components/designer/WidgetPanel";
 import CodeGenerator from "@/components/designer/CodeGenerator";
+import CodeEditor from "@/components/designer/CodeEditor";
+import DeviceConnection from "@/components/designer/DeviceConnection";
 import DesignerGuide from "@/components/designer/DesignerGuide";
 import DesignerDataViewer from "@/components/designer/DesignerDataViewer";
 import {
@@ -35,9 +37,11 @@ import {
 	Zap,
 	Settings,
 	Monitor,
+	Code,
 } from "lucide-react";
 import apiService from "@/lib/api";
 import websocketService from "@/lib/websocket";
+import flashService from "@/lib/flashService";
 import { toast } from "react-hot-toast";
 
 const DesignerPage = () => {
@@ -59,6 +63,10 @@ const DesignerPage = () => {
 	const [ctxMenu, setCtxMenu] = useState(null);
 	const [showGuide, setShowGuide] = useState(false);
 	const [showDataViewer, setShowDataViewer] = useState(false);
+	const [showCodeEditor, setShowCodeEditor] = useState(false);
+	const [showDeviceConnection, setShowDeviceConnection] = useState(false);
+	const [generatedCode, setGeneratedCode] = useState("");
+	const [selectedDevice, setSelectedDevice] = useState(null);
 
 	// Device data
 	const [devices, setDevices] = useState([]);
@@ -870,6 +878,48 @@ const DesignerPage = () => {
 		}
 	};
 
+	// Code Editor handlers
+	const handleCodeChange = (newCode) => {
+		setGeneratedCode(newCode);
+	};
+
+	const handleCodeSave = (code) => {
+		setGeneratedCode(code);
+		localStorage.setItem("designer-generated-code", code);
+		toast.success("Code saved successfully!");
+	};
+
+	const handleCodeFlash = async (code, deviceId, settings) => {
+		try {
+			// Set up progress callback
+			flashService.setProgressCallback((progress, status) => {
+				// Progress will be handled by CodeEditor component
+			});
+
+			// Validate code
+			const validation = flashService.validateCode(code);
+			if (!validation.valid) {
+				throw new Error(`Code validation failed: ${validation.errors.join(", ")}`);
+			}
+
+			// Flash the code
+			await flashService.flash(code, deviceId, settings);
+
+			toast.success("Code flashed successfully!");
+		} catch (error) {
+			toast.error(`Flash failed: ${error.message}`);
+			throw error;
+		}
+	};
+
+	// Device selection handler
+	const handleDeviceSelect = (device) => {
+		setSelectedDevice(device);
+		if (device) {
+			setDefaultDeviceId(device.deviceId);
+		}
+	};
+
 	const addWidget = (widgetId) => {
 		const size = { w: 160, h: 90 };
 		// Calculate position to avoid overlapping
@@ -1039,6 +1089,18 @@ const DesignerPage = () => {
 								</div>
 							</div>
 							<div className='flex items-center space-x-2'>
+								<button
+									onClick={() => setShowDeviceConnection(true)}
+									className='flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors'>
+									<Monitor className='w-4 h-4' />
+									<span className='hidden sm:inline'>Device</span>
+								</button>
+								<button
+									onClick={() => setShowCodeEditor(true)}
+									className='flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors'>
+									<Code className='w-4 h-4' />
+									<span className='hidden sm:inline'>Code Editor</span>
+								</button>
 								<button
 									onClick={() => setShowGuide(true)}
 									className='flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors'>
@@ -1214,6 +1276,57 @@ const DesignerPage = () => {
 								shapes={shapes}
 								devices={devices}
 								defaultDeviceId={defaultDeviceId}
+							/>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Code Editor Modal */}
+			{showCodeEditor && (
+				<div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+					<div className='bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-7xl w-full max-h-[95vh] flex flex-col'>
+						<div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'>
+							<h3 className='text-lg font-semibold text-gray-900 dark:text-white'>Code Editor & Flash</h3>
+							<button
+								onClick={() => setShowCodeEditor(false)}
+								className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors'>
+								<X className='w-5 h-5 text-gray-500 dark:text-gray-400' />
+							</button>
+						</div>
+						<div className='flex-1 overflow-hidden'>
+							<CodeEditor
+								initialCode={generatedCode}
+								onCodeChange={handleCodeChange}
+								onSave={handleCodeSave}
+								onFlash={handleCodeFlash}
+								devices={devices}
+								selectedDevice={devices.find((d) => d.deviceId === defaultDeviceId)}
+								compact={false}
+							/>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Device Connection Modal */}
+			{showDeviceConnection && (
+				<div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
+					<div className='bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col'>
+						<div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'>
+							<h3 className='text-lg font-semibold text-gray-900 dark:text-white'>Device Connection</h3>
+							<button
+								onClick={() => setShowDeviceConnection(false)}
+								className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors'>
+								<X className='w-5 h-5 text-gray-500 dark:text-gray-400' />
+							</button>
+						</div>
+						<div className='flex-1 overflow-hidden'>
+							<DeviceConnection
+								devices={devices}
+								selectedDevice={selectedDevice}
+								onDeviceSelect={handleDeviceSelect}
+								compact={false}
 							/>
 						</div>
 					</div>

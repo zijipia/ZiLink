@@ -1,13 +1,19 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Download, Copy, Check, Eye, X, ArrowUp, ArrowDown } from "lucide-react";
+import { Download, Copy, Check, Eye, X, ArrowUp, ArrowDown, Code, Play } from "lucide-react";
+import CodeEditor from "./CodeEditor";
+import flashService from "@/lib/flashService";
 
 const CodeGenerator = ({ shapes, devices, defaultDeviceId, compact = false }) => {
 	const [generatedCode, setGeneratedCode] = useState("");
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [copied, setCopied] = useState(false);
 	const [showPreview, setShowPreview] = useState(false);
+	const [showCodeEditor, setShowCodeEditor] = useState(false);
+	const [isFlashing, setIsFlashing] = useState(false);
+	const [flashProgress, setFlashProgress] = useState(0);
+	const [flashStatus, setFlashStatus] = useState("");
 	const scrollRef = useRef(null);
 
 	const generateESP32Code = () => {
@@ -512,6 +518,49 @@ void handleCommands() {
 		URL.revokeObjectURL(url);
 	};
 
+	// Handle code changes from editor
+	const handleCodeChange = (newCode) => {
+		setGeneratedCode(newCode);
+	};
+
+	// Handle save from editor
+	const handleSave = (code) => {
+		setGeneratedCode(code);
+		// Save to localStorage or send to server
+		localStorage.setItem("designer-generated-code", code);
+	};
+
+	// Handle flash from editor
+	const handleFlash = async (code, deviceId, settings) => {
+		setIsFlashing(true);
+		setFlashProgress(0);
+		setFlashStatus("Starting flash...");
+
+		try {
+			// Set up progress callback
+			flashService.setProgressCallback((progress, status) => {
+				setFlashProgress(progress);
+				setFlashStatus(status);
+			});
+
+			// Validate code
+			const validation = flashService.validateCode(code);
+			if (!validation.valid) {
+				throw new Error(`Code validation failed: ${validation.errors.join(", ")}`);
+			}
+
+			// Flash the code
+			await flashService.flash(code, deviceId, settings);
+
+			setFlashStatus("Flash completed successfully!");
+		} catch (error) {
+			setFlashStatus(`Flash failed: ${error.message}`);
+			throw error;
+		} finally {
+			setIsFlashing(false);
+		}
+	};
+
 	const scrollToTop = () => {
 		if (scrollRef.current) {
 			scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
@@ -583,6 +632,21 @@ void handleCommands() {
 								onClick={downloadCode}
 								className='flex-1 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors flex items-center justify-center text-xs'>
 								<Download className='w-3 h-3' />
+							</button>
+						</div>
+
+						<div className='flex space-x-1'>
+							<button
+								onClick={() => setShowCodeEditor(true)}
+								className='flex-1 px-2 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors flex items-center justify-center text-xs'>
+								<Code className='w-3 h-3 mr-1' />
+								Edit
+							</button>
+							<button
+								onClick={() => setShowCodeEditor(true)}
+								className='flex-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors flex items-center justify-center text-xs'>
+								<Play className='w-3 h-3 mr-1' />
+								Flash
 							</button>
 						</div>
 
@@ -671,6 +735,42 @@ void handleCommands() {
 						</div>
 					</div>
 				)}
+
+				{/* Code Editor Modal for Compact Mode */}
+				{showCodeEditor && (
+					<div
+						className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'
+						onClick={(e) => {
+							if (e.target === e.currentTarget) {
+								setShowCodeEditor(false);
+							}
+						}}>
+						<div
+							className='bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full max-h-[95vh] flex flex-col'
+							onClick={(e) => e.stopPropagation()}>
+							<div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'>
+								<h3 className='text-lg font-semibold text-gray-900 dark:text-white'>Code Editor & Flash</h3>
+								<button
+									onClick={() => setShowCodeEditor(false)}
+									className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors'>
+									<X className='w-5 h-5 text-gray-500 dark:text-gray-400' />
+								</button>
+							</div>
+
+							<div className='flex-1 overflow-hidden'>
+								<CodeEditor
+									initialCode={generatedCode}
+									onCodeChange={handleCodeChange}
+									onSave={handleSave}
+									onFlash={handleFlash}
+									devices={devices}
+									selectedDevice={devices.find((d) => d.deviceId === defaultDeviceId)}
+									compact={false}
+								/>
+							</div>
+						</div>
+					</div>
+				)}
 			</div>
 		);
 	}
@@ -706,6 +806,21 @@ void handleCommands() {
 								onClick={downloadCode}
 								className='flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center'>
 								<Download className='w-4 h-4' />
+							</button>
+						</div>
+
+						<div className='flex space-x-2'>
+							<button
+								onClick={() => setShowCodeEditor(true)}
+								className='flex-1 px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center'>
+								<Code className='w-4 h-4 mr-2' />
+								Edit Code
+							</button>
+							<button
+								onClick={() => setShowCodeEditor(true)}
+								className='flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center'>
+								<Play className='w-4 h-4 mr-2' />
+								Flash Code
 							</button>
 						</div>
 
@@ -800,6 +915,42 @@ void handleCommands() {
 									Download
 								</button>
 							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Code Editor Modal */}
+			{showCodeEditor && (
+				<div
+					className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'
+					onClick={(e) => {
+						if (e.target === e.currentTarget) {
+							setShowCodeEditor(false);
+						}
+					}}>
+					<div
+						className='bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full max-h-[95vh] flex flex-col'
+						onClick={(e) => e.stopPropagation()}>
+						<div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'>
+							<h3 className='text-lg font-semibold text-gray-900 dark:text-white'>Code Editor & Flash</h3>
+							<button
+								onClick={() => setShowCodeEditor(false)}
+								className='p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors'>
+								<X className='w-5 h-5 text-gray-500 dark:text-gray-400' />
+							</button>
+						</div>
+
+						<div className='flex-1 overflow-hidden'>
+							<CodeEditor
+								initialCode={generatedCode}
+								onCodeChange={handleCodeChange}
+								onSave={handleSave}
+								onFlash={handleFlash}
+								devices={devices}
+								selectedDevice={devices.find((d) => d.deviceId === defaultDeviceId)}
+								compact={false}
+							/>
 						</div>
 					</div>
 				</div>
