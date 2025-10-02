@@ -423,4 +423,3 @@ class FlashService {
 // Export singleton instance
 export const flashService = new FlashService();
 export default flashService;
-

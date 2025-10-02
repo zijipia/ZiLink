@@ -1,1 +1,3 @@
+client/src/components/designer/CodeEditor.jsx
+client/src/lib/flashService.js
 formatted_files.txt
